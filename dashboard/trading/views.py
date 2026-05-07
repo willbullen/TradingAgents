@@ -220,6 +220,10 @@ def agent_room(request):
     context = {
         "page": "agent_room",
         "past_decisions": past_decisions,
+        "default_politicians": [
+            "Nancy Pelosi", "Michael McCaul", "Josh Gottheimer",
+            "Dan Crenshaw", "Ro Khanna",
+        ],
     }
     return render(request, "trading/agent_room.html", context)
 

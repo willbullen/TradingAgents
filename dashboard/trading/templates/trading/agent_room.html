@@ -61,7 +61,7 @@
         <span style="font-size:0.78rem;color:var(--text-secondary);">{{ p }}</span>
       </div>
       {% empty %}
-      {% for p in "Nancy Pelosi,Michael McCaul,Josh Gottheimer,Dan Crenshaw,Ro Khanna"|split:"," %}
+      {% for p in default_politicians %}
       <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;display:flex;align-items:center;gap:8px;">
         <i class="fas fa-user-tie" style="color:var(--text-muted);font-size:0.7rem;"></i>
         <span style="font-size:0.78rem;color:var(--text-secondary);">{{ p }}</span>

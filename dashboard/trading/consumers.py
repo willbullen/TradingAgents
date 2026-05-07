@@ -136,7 +136,9 @@ class AgentRoomConsumer(WebsocketConsumer):
             return
         action = data.get("action")
         if action == "run_full_pipeline":
-            t = threading.Thread(target=self._run_full_pipeline, daemon=True)
+            strategy = data.get("strategy", "capitol")
+            manual_tickers = data.get("tickers", None)
+            t = threading.Thread(target=self._run_full_pipeline, args=(strategy, manual_tickers), daemon=True)
             t.start()
         elif action == "run_analysis":
             ticker = data.get("ticker", "").strip().upper()
@@ -151,14 +153,23 @@ class AgentRoomConsumer(WebsocketConsumer):
             pass
 
     # ── Full pipeline: Capitol Trades → per-ticker analysis ──
-    def _run_full_pipeline(self):
+    def _run_full_pipeline(self, strategy='capitol', manual_tickers=None):
         from django.conf import settings
         import time
 
-        # Try real Capitol Trades API, fall back to demo
-        tickers_data = self._fetch_capitol_trades(settings)
-        if not tickers_data:
-            tickers_data = self._demo_capitol_trades()
+        if strategy == 'watchlist' and manual_tickers:
+            # Watchlist mode — use provided tickers directly
+            tickers_data = [{'ticker': t, 'politician': 'Watchlist', 'trade_type': 'Analysis',
+                              'amount': '—', 'date': 'Today'} for t in manual_tickers]
+        elif strategy == 'wheel' and manual_tickers:
+            # Wheel mode — use selected Alpaca positions
+            tickers_data = [{'ticker': t, 'politician': 'Wheel Position', 'trade_type': 'Options Analysis',
+                              'amount': '—', 'date': 'Today'} for t in manual_tickers]
+        else:
+            # Capitol Trades mode — try real API, fall back to demo
+            tickers_data = self._fetch_capitol_trades(settings)
+            if not tickers_data:
+                tickers_data = self._demo_capitol_trades()
 
         # Stage 1: stream ticker selection
         self._send_json({"type": "capitol_start"})

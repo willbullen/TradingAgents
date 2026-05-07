@@ -3,18 +3,230 @@
 {% block page_title %}Agent Room{% endblock %}
 {% block breadcrumb %}Intelligence / Agent Room{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ── Strategy Switcher ─────────────────────────────────────── */
+.strategy-switcher {
+  display: flex;
+  gap: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  width: fit-content;
+}
+.strategy-tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 20px;
+  border-radius: calc(var(--radius) - 2px);
+  font-family: var(--font-display);
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none; background: transparent;
+  white-space: nowrap;
+}
+.strategy-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+.strategy-tab.active {
+  background: var(--grad-blue-violet);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(59,130,246,0.35);
+}
+.strategy-tab .tab-badge {
+  background: rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+}
+.strategy-tab.active .tab-badge { background: rgba(255,255,255,0.25); }
+
+/* ── Strategy panels ──────────────────────────────────────── */
+.strategy-panel { display: none; }
+.strategy-panel.active { display: block; }
+
+/* ── Watchlist input ──────────────────────────────────────── */
+.watchlist-input-wrap {
+  display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;
+}
+.watchlist-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--blue-dim); border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm); padding: 4px 10px;
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+  color: var(--blue-bright);
+}
+.watchlist-tag button {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.7rem; padding: 0; line-height: 1;
+  transition: color 0.15s;
+}
+.watchlist-tag button:hover { color: var(--red); }
+.ticker-input {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 7px 14px;
+  font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;
+  color: var(--text-primary); width: 120px; text-transform: uppercase;
+  outline: none; transition: border-color 0.2s;
+}
+.ticker-input:focus { border-color: var(--border-accent); }
+.ticker-input::placeholder { color: var(--text-muted); font-weight: 400; }
+
+/* ── Wheel positions ──────────────────────────────────────── */
+.wheel-position-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.wheel-position-row:last-child { border-bottom: none; }
+.wheel-position-row:hover { background: var(--bg-elevated); }
+.wheel-pos-ticker { font-family: var(--font-mono); font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
+.wheel-pos-detail { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.wheel-pos-select { display: flex; align-items: center; gap: 8px; }
+.wheel-checkbox {
+  width: 18px; height: 18px; accent-color: var(--blue-bright); cursor: pointer;
+}
+
+/* ── Agent Cell ───────────────────────────────────────────── */
+.agent-cell {
+  background: var(--bg-card);
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 150px;
+  transition: background 0.25s;
+  position: relative;
+}
+.agent-cell-top { display: flex; align-items: flex-start; gap: 10px; }
+.agent-cell-icon {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; flex-shrink: 0;
+}
+.agent-cell-icon.blue   { background: var(--blue-dim);   color: var(--blue-bright); }
+.agent-cell-icon.green  { background: var(--green-dim);  color: var(--green); }
+.agent-cell-icon.red    { background: var(--red-dim);    color: var(--red); }
+.agent-cell-icon.yellow { background: var(--yellow-dim); color: var(--yellow); }
+.agent-cell-icon.cyan   { background: rgba(6,182,212,0.12); color: #06b6d4; }
+.agent-cell-icon.violet { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+.agent-cell-icon.orange { background: rgba(249,115,22,0.12); color: #f97316; }
+
+.agent-cell-info { flex: 1; min-width: 0; }
+.agent-cell-name { font-family: var(--font-display); font-size: 0.82rem; font-weight: 700; color: var(--text-primary); }
+.agent-cell-role { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+.agent-cell-status { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.08em; }
+.agent-cell-status.idle    { color: var(--text-muted); }
+.agent-cell-status.active  { color: var(--blue-bright); }
+.agent-cell-status.done    { color: var(--green); }
+.agent-cell-status.error   { color: var(--red); }
+
+.agent-cell.active {
+  background: rgba(59,130,246,0.04);
+  border-left: 2px solid var(--blue-bright);
+  animation: cell-scan 2s linear infinite;
+}
+.agent-cell.done   { border-left: 2px solid var(--green); }
+.agent-cell.error  { border-left: 2px solid var(--red); }
+@keyframes cell-scan {
+  0%   { box-shadow: inset 0 0 0 0 rgba(59,130,246,0); }
+  50%  { box-shadow: inset 0 0 12px 0 rgba(59,130,246,0.08); }
+  100% { box-shadow: inset 0 0 0 0 rgba(59,130,246,0); }
+}
+.agent-cell.active .agent-cell-icon { animation: icon-pulse 1.5s ease-in-out infinite; }
+@keyframes icon-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.agent-report {
+  font-size: 0.77rem; line-height: 1.65;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  border-left: 2px solid var(--border);
+  display: none;
+}
+.agent-report.visible { display: block; animation: fade-in 0.3s ease; }
+.agent-report.green-border { border-left-color: var(--green); }
+.agent-report.red-border   { border-left-color: var(--red); }
+.agent-report.yellow-border{ border-left-color: var(--yellow); }
+
+.thinking-dots::after {
+  content: '...'; animation: dots 1.2s steps(4,end) infinite;
+}
+@keyframes dots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'...'} }
+
+/* ── Layer header ─────────────────────────────────────────── */
+.layer-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display); font-size: 0.75rem; font-weight: 700;
+  color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.layer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+.layer-grid .agent-cell { border-right: 1px solid var(--border); }
+.layer-grid .agent-cell:last-child { border-right: none; }
+
+/* ── Ticker tabs ──────────────────────────────────────────── */
+.ticker-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+  color: var(--text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.ticker-tab:hover { color: var(--text-primary); }
+.ticker-tab.active { color: var(--blue-bright); border-bottom-color: var(--blue-bright); }
+.ticker-tab.done   { color: var(--green); border-bottom-color: var(--green); }
+
+/* ── Capitol ticker pills ─────────────────────────────────── */
+.capitol-ticker {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 6px 14px;
+  font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;
+  color: var(--text-secondary); transition: all 0.3s;
+}
+.capitol-ticker.selected  { background: var(--blue-dim); border-color: var(--border-accent); color: var(--blue-bright); }
+.capitol-ticker.analysing { background: rgba(59,130,246,0.08); border-color: var(--blue-bright); color: var(--blue-bright); animation: pip-pulse 1.5s ease-in-out infinite; }
+.capitol-ticker.done      { background: var(--green-dim); border-color: rgba(16,185,129,0.3); color: var(--green); }
+@keyframes pip-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* ── Final decision badge ─────────────────────────────────── */
+.final-badge {
+  padding: 4px 12px; border-radius: var(--radius-sm);
+  font-family: var(--font-display); font-size: 0.82rem; font-weight: 700;
+  animation: badge-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.final-badge.buy        { background:var(--green-dim);   color:var(--green);         border:1px solid rgba(16,185,129,0.3); }
+.final-badge.overweight { background:var(--blue-dim);    color:var(--blue-bright);   border:1px solid rgba(59,130,246,0.3); }
+.final-badge.hold       { background:var(--yellow-dim);  color:var(--yellow);        border:1px solid rgba(245,158,11,0.3); }
+.final-badge.underweight{ background:var(--orange-dim);  color:var(--orange);        border:1px solid rgba(249,115,22,0.3); }
+.final-badge.sell       { background:var(--red-dim);     color:var(--red);           border:1px solid rgba(239,68,68,0.3); }
+@keyframes badge-pop { 0%{transform:scale(0.6);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+details[open] summary i { transform: rotate(90deg); }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<!-- ── Page Header ─────────────────────────────────────── -->
+<!-- ── Page Header ─────────────────────────────────────────── -->
 <div class="page-header flex-between mb-24">
   <div>
     <h1 class="page-title text-gradient">Agent Room</h1>
-    <p class="page-subtitle">Watch the full autonomous pipeline — Capitol Trades selects tickers, 11 agents analyse each one</p>
+    <p class="page-subtitle">Watch the full autonomous pipeline — select a strategy, then let 11 AI agents work</p>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
     <button id="run-btn" class="btn btn-primary" onclick="startPipeline()">
       <i class="fas fa-rocket" id="run-icon"></i>
-      <span id="run-label">Run Full Pipeline</span>
+      <span id="run-label">Run Pipeline</span>
     </button>
     <button class="btn btn-ghost" onclick="clearRoom()" title="Clear">
       <i class="fas fa-broom"></i>
@@ -22,7 +234,124 @@
   </div>
 </div>
 
-<!-- ── Master Progress Bar ─────────────────────────────── -->
+<!-- ── Strategy Switcher ───────────────────────────────────── -->
+<div class="glass-card mb-24">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-sliders"></i> Strategy Mode</span>
+    <span style="font-size:0.75rem;color:var(--text-muted);">Select how tickers are sourced for analysis</span>
+  </div>
+  <div class="glass-card-body" style="padding-bottom:20px;">
+    <div class="strategy-switcher mb-16">
+      <button class="strategy-tab active" id="tab-capitol" onclick="switchStrategy('capitol')">
+        <i class="fas fa-landmark"></i> Capitol Trades
+        <span class="tab-badge">Insider</span>
+      </button>
+      <button class="strategy-tab" id="tab-wheel" onclick="switchStrategy('wheel')">
+        <i class="fas fa-circle-notch"></i> Wheel Strategy
+        <span class="tab-badge">Options</span>
+      </button>
+      <button class="strategy-tab" id="tab-watchlist" onclick="switchStrategy('watchlist')">
+        <i class="fas fa-list-check"></i> Watchlist
+        <span class="tab-badge">Custom</span>
+      </button>
+    </div>
+
+    <!-- Capitol Trades Panel -->
+    <div class="strategy-panel active" id="panel-capitol">
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+        Scans legally-disclosed trade filings from US Congress members via <strong>Quiver Quantitative</strong>. Politicians are scored by historical return performance. Tickers they have recently <em>purchased</em> are fed into the agent pipeline.
+      </p>
+      <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);letter-spacing:0.1em;margin-bottom:10px;">TRACKING</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="politician-pills">
+        {% for p in default_politicians %}
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-user-tie" style="color:var(--text-muted);font-size:0.7rem;"></i>
+          <span style="font-size:0.78rem;color:var(--text-secondary);">{{ p }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Wheel Strategy Panel -->
+    <div class="strategy-panel" id="panel-wheel">
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+        Analyses your existing <strong>Alpaca positions</strong> to identify Wheel Strategy opportunities — selling cash-secured puts on strong tickers and covered calls on positions you already hold. The agents evaluate each position for premium income potential.
+      </p>
+      <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);letter-spacing:0.1em;margin-bottom:10px;">SELECT POSITIONS TO ANALYSE</div>
+      <div id="wheel-positions-list">
+        <!-- Demo positions — replaced by live Alpaca data when connected -->
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);">
+          {% for pos in wheel_positions %}
+          <div class="wheel-position-row">
+            <div>
+              <div class="wheel-pos-ticker">{{ pos.ticker }}</div>
+              <div class="wheel-pos-detail">{{ pos.qty }} shares · avg ${{ pos.avg_price }} · P&L {{ pos.pnl_pct }}%</div>
+            </div>
+            <div class="wheel-pos-select">
+              <span class="badge badge-{{ pos.stage|lower }}">{{ pos.stage }}</span>
+              <input type="checkbox" class="wheel-checkbox" value="{{ pos.ticker }}" checked>
+            </div>
+          </div>
+          {% empty %}
+          <div class="wheel-position-row">
+            <div>
+              <div class="wheel-pos-ticker">NVDA</div>
+              <div class="wheel-pos-detail">100 shares · avg $875.00 · P&L +12.4%</div>
+            </div>
+            <div class="wheel-pos-select">
+              <span class="badge" style="background:var(--green-dim);color:var(--green);">Covered Call</span>
+              <input type="checkbox" class="wheel-checkbox" value="NVDA" checked>
+            </div>
+          </div>
+          <div class="wheel-position-row">
+            <div>
+              <div class="wheel-pos-ticker">MSFT</div>
+              <div class="wheel-pos-detail">50 shares · avg $415.00 · P&L +5.8%</div>
+            </div>
+            <div class="wheel-pos-select">
+              <span class="badge" style="background:var(--blue-dim);color:var(--blue-bright);">Cash-Secured Put</span>
+              <input type="checkbox" class="wheel-checkbox" value="MSFT" checked>
+            </div>
+          </div>
+          <div class="wheel-position-row">
+            <div>
+              <div class="wheel-pos-ticker">AAPL</div>
+              <div class="wheel-pos-detail">75 shares · avg $192.00 · P&L +3.1%</div>
+            </div>
+            <div class="wheel-pos-select">
+              <span class="badge" style="background:var(--blue-dim);color:var(--blue-bright);">Cash-Secured Put</span>
+              <input type="checkbox" class="wheel-checkbox" value="AAPL" checked>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Watchlist Panel -->
+    <div class="strategy-panel" id="panel-watchlist">
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6;">
+        Run the full 11-agent pipeline on any tickers you choose. Type a ticker and press <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.75rem;">Enter</kbd> to add it to the list.
+      </p>
+      <div id="watchlist-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:36px;"></div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="text" class="ticker-input" id="watchlist-input" placeholder="e.g. TSLA" maxlength="6"
+               onkeydown="if(event.key==='Enter')addWatchlistTicker()" />
+        <button class="btn btn-ghost btn-sm" onclick="addWatchlistTicker()">
+          <i class="fas fa-plus"></i> Add
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="loadPresetWatchlist()">
+          <i class="fas fa-wand-magic-sparkles"></i> Load Preset
+        </button>
+      </div>
+      <div id="watchlist-empty-hint" style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;font-style:italic;">
+        Add at least one ticker to run the pipeline.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Master Progress Bar ─────────────────────────────────── -->
 <div id="master-bar" class="glass-card mb-24" style="display:none;">
   <div style="padding:14px 20px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -41,46 +370,28 @@
   </div>
 </div>
 
-<!-- ── Stage 1: Capitol Trades Intelligence ────────────── -->
-<div class="glass-card mb-24" id="stage-capitol">
+<!-- ── Stage 1: Source Intelligence ───────────────────────── -->
+<div class="glass-card mb-24" id="stage-source">
   <div class="glass-card-header">
-    <span class="glass-card-title">
-      <i class="fas fa-landmark"></i> Stage 1 — Capitol Trades Intelligence
+    <span class="glass-card-title" id="source-stage-title">
+      <i class="fas fa-satellite-dish"></i> Stage 1 — Source Intelligence
     </span>
-    <span id="capitol-status" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);letter-spacing:0.08em;">WAITING</span>
+    <span id="source-status" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);letter-spacing:0.08em;">WAITING</span>
   </div>
   <div class="glass-card-body">
-    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
-      Scanning legally-disclosed trade filings from US Congress members via Quiver Quantitative. Politicians are scored by historical performance and recency. The tickers they have been buying become the input for the AI analysis pipeline.
-    </p>
-    <!-- Politicians being tracked -->
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;" id="politician-pills">
-      {% for p in tracked_politicians %}
-      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;display:flex;align-items:center;gap:8px;">
-        <i class="fas fa-user-tie" style="color:var(--text-muted);font-size:0.7rem;"></i>
-        <span style="font-size:0.78rem;color:var(--text-secondary);">{{ p }}</span>
+    <div id="source-content">
+      <div id="source-idle" style="color:var(--text-muted);font-size:0.82rem;font-style:italic;">
+        Click "Run Pipeline" to begin...
       </div>
-      {% empty %}
-      {% for p in default_politicians %}
-      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;display:flex;align-items:center;gap:8px;">
-        <i class="fas fa-user-tie" style="color:var(--text-muted);font-size:0.7rem;"></i>
-        <span style="font-size:0.78rem;color:var(--text-secondary);">{{ p }}</span>
-      </div>
-      {% endfor %}
-      {% endfor %}
     </div>
-    <!-- Selected tickers will appear here -->
-    <div id="selected-tickers-wrap" style="display:none;">
-      <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);letter-spacing:0.1em;margin-bottom:10px;">TICKERS SELECTED FOR ANALYSIS</div>
+    <div id="selected-tickers-wrap" style="display:none;margin-top:16px;">
+      <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-muted);letter-spacing:0.1em;margin-bottom:10px;">TICKERS QUEUED FOR ANALYSIS</div>
       <div id="selected-tickers" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-    </div>
-    <div id="capitol-idle" style="color:var(--text-muted);font-size:0.78rem;font-style:italic;margin-top:4px;">
-      Click "Run Full Pipeline" to begin scanning Capitol Trades disclosures...
     </div>
   </div>
 </div>
 
-<!-- ── Stage 2: Agent Pipeline (per ticker) ────────────── -->
+<!-- ── Stage 2: Agent Pipeline ────────────────────────────── -->
 <div class="glass-card mb-24" id="stage-pipeline">
   <div class="glass-card-header">
     <span class="glass-card-title">
@@ -91,40 +402,27 @@
       <div id="current-ticker-badge" style="display:none;background:var(--blue-dim);border:1px solid var(--border-accent);border-radius:var(--radius-sm);padding:3px 10px;font-family:var(--font-mono);font-size:0.82rem;font-weight:700;color:var(--blue-bright);"></div>
     </div>
   </div>
-
-  <!-- Ticker tabs (appear after Capitol Trades selects them) -->
-  <div id="ticker-tabs" style="display:none;border-bottom:1px solid var(--border);padding:0 22px;overflow-x:auto;white-space:nowrap;">
-  </div>
-
-  <!-- Pipeline layers -->
-  <div style="padding:20px 22px;" id="pipeline-content">
+  <div id="ticker-tabs" style="display:none;border-bottom:1px solid var(--border);padding:0 22px;overflow-x:auto;white-space:nowrap;"></div>
+  <div id="pipeline-content" style="padding:20px 22px;">
     <div style="color:var(--text-muted);font-size:0.82rem;font-style:italic;text-align:center;padding:40px 0;">
       <i class="fas fa-arrow-up" style="margin-right:8px;"></i>
-      Waiting for Capitol Trades to select tickers...
+      Waiting for Stage 1 to select tickers...
     </div>
   </div>
 </div>
 
-<!-- ── Stage 3: Execution Summary ─────────────────────── -->
+<!-- ── Stage 3: Execution Summary ─────────────────────────── -->
 <div class="glass-card mb-24" id="stage-execution" style="display:none;">
   <div class="glass-card-header">
-    <span class="glass-card-title">
-      <i class="fas fa-bolt"></i> Stage 3 — Execution & Orders
-    </span>
+    <span class="glass-card-title"><i class="fas fa-bolt"></i> Stage 3 — Execution & Orders</span>
     <span class="badge badge-success" id="execution-status" style="display:none;">COMPLETE</span>
   </div>
   <div style="overflow-x:auto;">
     <table class="data-table" id="execution-table">
       <thead>
         <tr>
-          <th>Ticker</th>
-          <th>Rating</th>
-          <th>Action</th>
-          <th>Entry</th>
-          <th>Target</th>
-          <th>Stop Loss</th>
-          <th>Wheel</th>
-          <th>Investment Thesis</th>
+          <th>Ticker</th><th>Strategy</th><th>Rating</th><th>Action</th>
+          <th>Entry</th><th>Target</th><th>Stop Loss</th><th>Wheel</th><th>Investment Thesis</th>
         </tr>
       </thead>
       <tbody id="execution-tbody"></tbody>
@@ -132,7 +430,7 @@
   </div>
 </div>
 
-<!-- ── Past Runs ───────────────────────────────────────── -->
+<!-- ── Past Runs ───────────────────────────────────────────── -->
 {% if past_decisions %}
 <div class="glass-card">
   <div class="glass-card-header">
@@ -172,218 +470,37 @@
 
 {% endblock %}
 
-{% block extra_css %}
-<style>
-/* ── Agent Cell ───────────────────────────────────────────── */
-.agent-cell {
-  background: var(--bg-card);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 150px;
-  transition: background 0.25s;
-  position: relative;
-}
-.agent-cell-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.agent-cell-icon {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.85rem;
-  flex-shrink: 0;
-}
-.agent-cell-icon.blue   { background: var(--blue-dim);   color: var(--blue-bright); }
-.agent-cell-icon.green  { background: var(--green-dim);  color: var(--green); }
-.agent-cell-icon.red    { background: var(--red-dim);    color: var(--red); }
-.agent-cell-icon.cyan   { background: var(--cyan-dim);   color: var(--cyan); }
-.agent-cell-icon.violet { background: var(--violet-dim); color: var(--violet-bright); }
-.agent-cell-icon.yellow { background: var(--yellow-dim); color: var(--yellow); }
-.agent-cell-meta { flex: 1; min-width: 0; }
-.agent-cell-name {
-  font-family: var(--font-display);
-  font-size: 0.8rem; font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.agent-cell-role {
-  font-size: 0.68rem; color: var(--text-muted);
-  margin-top: 2px; font-family: var(--font-mono);
-}
-.agent-status-pip {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--bg-elevated); border: 1px solid var(--border);
-  flex-shrink: 0; margin-top: 4px;
-  transition: background 0.3s, box-shadow 0.3s;
-}
-.agent-status-pip.active { background: var(--blue-bright); box-shadow: 0 0 7px var(--blue-bright); animation: pip-pulse 1s ease-in-out infinite; }
-.agent-status-pip.done   { background: var(--green); box-shadow: 0 0 5px var(--green); animation: none; }
-.agent-status-pip.error  { background: var(--red); animation: none; }
-@keyframes pip-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-.agent-cell.active::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--blue), var(--violet), var(--blue));
-  background-size: 200% 100%;
-  animation: scan-bar 1.8s linear infinite;
-}
-@keyframes scan-bar { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.agent-cell.active { background: rgba(59,130,246,0.04); }
-.agent-cell.done::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: var(--green); opacity: 0.5;
-}
-
-.agent-output {
-  font-size: 0.75rem; line-height: 1.65; color: var(--text-secondary);
-  max-height: 120px; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-}
-.agent-idle { color: var(--text-muted); font-style: italic; font-size: 0.73rem; }
-.agent-thinking {
-  display: flex; align-items: center; gap: 8px;
-  color: var(--blue-bright); font-size: 0.75rem;
-}
-.thinking-dots span {
-  display: inline-block; width: 4px; height: 4px; border-radius: 50%;
-  background: var(--blue-bright); animation: tdot 1.2s ease-in-out infinite;
-}
-.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes tdot { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
-
-.agent-report {
-  background: var(--bg-elevated); border-radius: var(--radius-sm);
-  padding: 8px 10px; border-left: 2px solid var(--blue);
-  font-size: 0.75rem; line-height: 1.65; color: var(--text-secondary);
-  white-space: pre-wrap;
-}
-.agent-report.green  { border-left-color: var(--green); }
-.agent-report.red    { border-left-color: var(--red); }
-.agent-report.yellow { border-left-color: var(--yellow); }
-
-/* ── Ticker Tab ───────────────────────────────────────────── */
-.ticker-tab {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 16px; cursor: pointer;
-  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600;
-  color: var(--text-muted); border-bottom: 2px solid transparent;
-  transition: all 0.2s; white-space: nowrap;
-}
-.ticker-tab:hover { color: var(--text-secondary); }
-.ticker-tab.active { color: var(--blue-bright); border-bottom-color: var(--blue-bright); }
-.ticker-tab.done   { color: var(--green); }
-.ticker-tab.done .tab-pip { background: var(--green); }
-.tab-pip {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--bg-elevated); border: 1px solid var(--border);
-  transition: background 0.3s;
-}
-.ticker-tab.active .tab-pip { background: var(--blue-bright); animation: pip-pulse 1s ease-in-out infinite; }
-
-/* ── Layer label ──────────────────────────────────────────── */
-.layer-label {
-  font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--text-muted); padding: 10px 0 8px;
-  display: flex; align-items: center; gap: 8px;
-}
-.layer-label::after {
-  content: ''; flex: 1; height: 1px; background: var(--border);
-}
-
-/* ── Capitol ticker pill ──────────────────────────────────── */
-.capitol-ticker {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--bg-elevated); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 6px 14px;
-  font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;
-  color: var(--text-secondary); transition: all 0.3s;
-}
-.capitol-ticker.selected {
-  background: var(--blue-dim); border-color: var(--border-accent);
-  color: var(--blue-bright);
-}
-.capitol-ticker.analysing {
-  background: rgba(59,130,246,0.08); border-color: var(--blue-bright);
-  color: var(--blue-bright); animation: pip-pulse 1.5s ease-in-out infinite;
-}
-.capitol-ticker.done {
-  background: var(--green-dim); border-color: rgba(16,185,129,0.3);
-  color: var(--green);
-}
-
-/* ── Final decision row ───────────────────────────────────── */
-.final-badge {
-  padding: 4px 12px; border-radius: var(--radius-sm);
-  font-family: var(--font-display); font-size: 0.82rem; font-weight: 700;
-  animation: badge-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
-}
-.final-badge.buy        { background:var(--green-dim);   color:var(--green);         border:1px solid rgba(16,185,129,0.3); }
-.final-badge.overweight { background:var(--blue-dim);    color:var(--blue-bright);   border:1px solid rgba(59,130,246,0.3); }
-.final-badge.hold       { background:var(--yellow-dim);  color:var(--yellow);        border:1px solid rgba(245,158,11,0.3); }
-.final-badge.underweight{ background:var(--orange-dim);  color:var(--orange);        border:1px solid rgba(249,115,22,0.3); }
-.final-badge.sell       { background:var(--red-dim);     color:var(--red);           border:1px solid rgba(239,68,68,0.3); }
-@keyframes badge-pop { 0%{transform:scale(0.6);opacity:0} 100%{transform:scale(1);opacity:1} }
-
-details[open] summary i { transform: rotate(90deg); }
-</style>
-{% endblock %}
-
 {% block extra_js %}
 <script>
 // ── Agent definitions ──────────────────────────────────────
 const LAYERS = [
-  {
-    label: 'Layer 1 — Market Intelligence',
-    icon: 'fas fa-microscope',
-    agents: [
-      {id:'market',       name:'Market Analyst',       icon:'fas fa-chart-candlestick', color:'blue',   role:'MACD · RSI · Patterns'},
-      {id:'fundamentals', name:'Fundamentals Analyst', icon:'fas fa-building-columns',  color:'green',  role:'Earnings · FCF · Valuation'},
-      {id:'news',         name:'News Analyst',         icon:'fas fa-newspaper',         color:'cyan',   role:'Macro · Catalysts · Events'},
-      {id:'social',       name:'Sentiment Analyst',    icon:'fas fa-comments',          color:'violet', role:'Reddit · Twitter · Mood'},
-    ]
-  },
-  {
-    label: 'Layer 2 — Debate Chamber',
-    icon: 'fas fa-scale-balanced',
-    agents: [
-      {id:'bull',             name:'Bull Researcher',   icon:'fas fa-arrow-trend-up',       color:'green',  role:'Argues the long case'},
-      {id:'bear',             name:'Bear Researcher',   icon:'fas fa-arrow-trend-down',     color:'red',    role:'Argues the short case'},
-      {id:'research-manager', name:'Research Manager',  icon:'fas fa-gavel',                color:'yellow', role:'Judges debate · Issues plan'},
-    ]
-  },
-  {
-    label: 'Layer 3 — Execution & Risk',
-    icon: 'fas fa-shield-halved',
-    agents: [
-      {id:'trader',      name:'Trader',              icon:'fas fa-person-chalkboard',    color:'blue',   role:'Synthesises trade proposal'},
-      {id:'aggressive',  name:'Aggressive Risk',     icon:'fas fa-bolt',                 color:'red',    role:'High-risk perspective'},
-      {id:'conservative',name:'Conservative Risk',   icon:'fas fa-umbrella',             color:'cyan',   role:'Capital preservation'},
-      {id:'neutral',     name:'Neutral Risk',        icon:'fas fa-circle-half-stroke',   color:'violet', role:'Balanced assessment'},
-    ]
-  },
-  {
-    label: 'Layer 4 — Final Decision',
-    icon: 'fas fa-crown',
-    agents: [
-      {id:'pm', name:'Portfolio Manager', icon:'fas fa-crown', color:'yellow', role:'Final approver — Buy / Overweight / Hold / Underweight / Sell'},
-    ]
-  },
+  { label:'Layer 1 — Market Intelligence', icon:'fas fa-microscope', agents:[
+    {id:'market',       name:'Market Analyst',       icon:'fas fa-chart-candlestick', color:'blue',   role:'MACD · RSI · Patterns'},
+    {id:'fundamentals', name:'Fundamentals Analyst', icon:'fas fa-building-columns',  color:'green',  role:'Earnings · FCF · Valuation'},
+    {id:'news',         name:'News Analyst',         icon:'fas fa-newspaper',         color:'cyan',   role:'Macro · Catalysts · Events'},
+    {id:'social',       name:'Sentiment Analyst',    icon:'fas fa-comments',          color:'violet', role:'Reddit · Twitter · Mood'},
+  ]},
+  { label:'Layer 2 — Debate Chamber', icon:'fas fa-scale-balanced', agents:[
+    {id:'bull',    name:'Bull Researcher',  icon:'fas fa-arrow-trend-up',   color:'green',  role:'Argues the long case'},
+    {id:'bear',    name:'Bear Researcher',  icon:'fas fa-arrow-trend-down', color:'red',    role:'Argues the short case'},
+    {id:'rm',      name:'Research Manager', icon:'fas fa-gavel',            color:'yellow', role:'Judges debate · Issues plan'},
+  ]},
+  { label:'Layer 3 — Execution & Risk', icon:'fas fa-shield-halved', agents:[
+    {id:'trader',  name:'Trader',             icon:'fas fa-person-chalkboard', color:'blue',   role:'Synthesises trade proposal'},
+    {id:'agg',     name:'Aggressive Risk',    icon:'fas fa-bolt',              color:'red',    role:'High-risk perspective'},
+    {id:'cons',    name:'Conservative Risk',  icon:'fas fa-umbrella',          color:'cyan',   role:'Capital preservation'},
+    {id:'neut',    name:'Neutral Risk',       icon:'fas fa-circle-half-stroke',color:'violet', role:'Balanced assessment'},
+  ]},
+  { label:'Layer 4 — Final Decision', icon:'fas fa-crown', agents:[
+    {id:'pm', name:'Portfolio Manager', icon:'fas fa-crown', color:'yellow', role:'Final approver — Buy / Overweight / Hold / Underweight / Sell'},
+  ]},
 ];
-
 const AGENT_NAME_MAP = {
   'Market Analyst':'market','Fundamentals Analyst':'fundamentals',
   'News Analyst':'news','Social Analyst':'social',
-  'Bull Researcher':'bull','Bear Researcher':'bear','Research Manager':'research-manager',
-  'Trader':'trader','Aggressive Analyst':'aggressive',
-  'Conservative Analyst':'conservative','Neutral Analyst':'neutral',
+  'Bull Researcher':'bull','Bear Researcher':'bear','Research Manager':'rm',
+  'Trader':'trader','Aggressive Analyst':'agg',
+  'Conservative Analyst':'cons','Neutral Analyst':'neut',
   'Portfolio Manager':'pm',
 };
 const REPORT_COLOR = {'Bull Researcher':'green','Bear Researcher':'red','Portfolio Manager':'yellow'};
@@ -394,101 +511,102 @@ const AGENT_PROGRESS = {
   'Portfolio Manager':100
 };
 
-// ── State ──────────────────────────────────────────────────
+// ── Strategy state ─────────────────────────────────────────
+let activeStrategy = 'capitol';
+let watchlistTickers = [];
+const PRESET_WATCHLIST = ['NVDA','MSFT','AAPL','GOOGL','META'];
+
+// ── Demo data ──────────────────────────────────────────────
+const DEMO_CAPITOL = [
+  {ticker:'NVDA', politician:'Nancy Pelosi',    trade_type:'Buy', amount:'$500K–$1M',   date:'May 5, 2026'},
+  {ticker:'MSFT', politician:'Josh Gottheimer', trade_type:'Buy', amount:'$250K–$500K', date:'May 4, 2026'},
+  {ticker:'AMZN', politician:'Michael McCaul',  trade_type:'Buy', amount:'$100K–$250K', date:'May 3, 2026'},
+];
+const DEMO_WHEEL = [
+  {ticker:'NVDA', stage:'Covered Call',    detail:'100 shares · avg $875 · +12.4%'},
+  {ticker:'MSFT', stage:'Cash-Secured Put',detail:'50 shares · avg $415 · +5.8%'},
+  {ticker:'AAPL', stage:'Cash-Secured Put',detail:'75 shares · avg $192 · +3.1%'},
+];
+const DEMO_REPORTS = {
+  'Market Analyst':       'RSI(14): 58 — bullish momentum. MACD crossed above signal 3 sessions ago. Price above 20/50/200-day MAs. Volume 15% above average on up days. Bollinger Bands expanding — breakout forming.',
+  'Fundamentals Analyst': 'Revenue growth +22% YoY. Gross margin 74.8% — expanding. FCF yield 3.2%. P/E 28x vs sector 31x — discount. Net cash position. Beat earnings 6 consecutive quarters.',
+  'News Analyst':         'Positive: AI infrastructure spending tailwind. Positive: New product cycle. Neutral: Fed rate path uncertainty. Risk: EU regulatory scrutiny (limited exposure). Net: positive news flow.',
+  'Social Analyst':       'Reddit bullish sentiment 68%. Twitter mentions +34% WoW. StockTwits bull/bear 2.8:1. 14 institutional upgrades vs 3 downgrades. Short interest 2.1% — low.',
+  'Bull Researcher':      'Compelling entry: strong momentum + expanding fundamentals + AI tailwind. Management beat guidance 6 consecutive quarters. Valuation discount to peers unjustified. Price target: +28% over 12 months.',
+  'Bear Researcher':      'Valuation elevated — multiple compression risk in risk-off environment. Competition intensifying. Insider selling accelerated over 90 days. AI capex cycle could decelerate faster than consensus.',
+  'Research Manager':     'Bull case more compelling. Bear valuation concern valid but overstated. Investment Plan: Initiate long. Entry on 3-5% pullback. Position size: 4-5% of portfolio. Horizon: 6-12 months.',
+  'Trader':               'Trade Proposal — BUY\n• Entry: Market open\n• Position: 4% of portfolio\n• Target: +25% from entry\n• Stop loss: -8% trailing\n• Risk/reward: 3.1:1',
+  'Aggressive Analyst':   '3.1:1 R/R is attractive. Recommend 6% position given setup strength. Stop at -8% appropriate. Add on 52-week high breakout. Upside scenario: +40% if AI cycle accelerates.',
+  'Conservative Analyst': 'Reduce to 3% position. Macro uncertainty + beta 1.4. Tighten stop to -5%. Keep sector exposure below 15%.',
+  'Neutral Analyst':      '4% position at -8% stop within normal parameters. Max drawdown contribution: 0.32% — acceptable. Move stop to breakeven after +10% gain.',
+  'Portfolio Manager':    'FINAL DECISION\n\nRATING: BUY ✓\n\nApproved.\n• Entry: 4% at market\n• Target: +25% (12-month)\n• Stop: -8% trailing\n• Thesis: Strong fundamentals + momentum + AI tailwind = asymmetric upside\n\nOrder authorised for execution.',
+};
+
+// ── Runtime state ──────────────────────────────────────────
 let ws = null, runTimer = null, runSeconds = 0, isRunning = false;
 let tickers = [], currentTickerIdx = 0, tickerResults = {};
 
-// ── Demo data ──────────────────────────────────────────────
-const DEMO_TICKERS = [
-  {ticker:'NVDA', politician:'Nancy Pelosi', trade_type:'Buy', amount:'$500K–$1M', date:'May 5, 2026'},
-  {ticker:'MSFT', politician:'Josh Gottheimer', trade_type:'Buy', amount:'$250K–$500K', date:'May 4, 2026'},
-  {ticker:'AMZN', politician:'Michael McCaul', trade_type:'Buy', amount:'$100K–$250K', date:'May 3, 2026'},
-];
-const DEMO_REPORTS = {
-  'Market Analyst': 'RSI at 62 — bullish momentum. MACD crossed above signal line 3 sessions ago. Price trading above 20/50/200-day MAs. Volume trending higher on up days. Bollinger Bands expanding — breakout pattern forming.',
-  'Fundamentals Analyst': 'Revenue growth 22% YoY. Free cash flow margin 28%. P/E of 31x reasonable given growth trajectory. Balance sheet strong with $18B cash. Earnings beat last 6 consecutive quarters.',
-  'News Analyst': 'Positive macro backdrop. Fed signalling pause on rate hikes. Sector tailwinds from AI infrastructure spending. No material negative catalysts identified in last 30 days.',
-  'Sentiment Analyst': 'Reddit r/investing sentiment 74% bullish. Institutional positioning increasing per 13F filings. Options market showing elevated call buying. Social media buzz trending upward.',
-  'Bull Researcher': 'The bull case is compelling. Technical momentum is strong, fundamentals are solid, and the macro environment is supportive. The AI infrastructure theme provides a multi-year growth runway. Recommend Buy with a 12-month price target of +25%.',
-  'Bear Researcher': 'Valuation is stretched relative to sector peers. Insider selling has increased. Margin compression risk if AI capex cycle slows. Geopolitical exposure to Taiwan semiconductor supply chain. Recommend caution.',
-  'Research Manager': 'Having weighed both arguments, the bull case is more persuasive given the strong fundamental backdrop and technical momentum. The bear concerns are real but manageable. Investment Plan: Buy with 5% portfolio allocation, stop-loss at -8%.',
-  'Trader': 'Trade Proposal: BUY at market open. Entry: current price. Position size: 5% of portfolio. Price target: +22% (12 months). Stop-loss: -8% trailing. Risk/reward: 2.75:1.',
-  'Aggressive Analyst': 'Risk is acceptable. Volatility is within normal range. The potential upside significantly outweighs the downside. Recommend full position size as proposed.',
-  'Conservative Analyst': 'Suggest reducing position size to 3% given current market uncertainty. Stop-loss should be tightened to -6%. The trade is sound but capital preservation is paramount.',
-  'Neutral Analyst': 'Balanced assessment: 4% position size is appropriate. Stop-loss at -7%. The risk/reward ratio is favourable and the thesis is well-supported by multiple data sources.',
-  'Portfolio Manager': 'FINAL DECISION: OVERWEIGHT\n\nAfter reviewing all analyst reports, the debate, and risk assessments, I am approving this trade with a Buy/Overweight rating.\n\nEntry: Market price\nPosition size: 4% of portfolio\nPrice target: +22% (12 months)\nStop-loss: -7% trailing\n\nInvestment thesis: Strong momentum, solid fundamentals, and supportive macro environment. The AI infrastructure theme provides durable growth. Risk is well-managed with trailing stop protection.',
-};
-
-// ── Build pipeline HTML for a ticker ──────────────────────
-function buildPipelineHTML(ticker) {
-  let html = '';
-  LAYERS.forEach(layer => {
-    const cols = layer.agents.length === 1 ? '1fr' : `repeat(${layer.agents.length}, 1fr)`;
-    html += `<div class="layer-label"><i class="${layer.icon}" style="color:var(--blue-bright);font-size:0.75rem;"></i>${layer.label}</div>`;
-    html += `<div style="display:grid;grid-template-columns:${cols};gap:1px;background:var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px;">`;
-    layer.agents.forEach(a => {
-      html += `
-        <div class="agent-cell" id="ac-${ticker}-${a.id}">
-          <div class="agent-cell-top">
-            <div class="agent-cell-icon ${a.color}"><i class="${a.icon}"></i></div>
-            <div class="agent-cell-meta">
-              <div class="agent-cell-name">${a.name}</div>
-              <div class="agent-cell-role">${a.role}</div>
-            </div>
-            <div class="agent-status-pip" id="pip-${ticker}-${a.id}"></div>
-          </div>
-          <div class="agent-output" id="out-${ticker}-${a.id}">
-            <div class="agent-idle">Waiting...</div>
-          </div>
-        </div>`;
-    });
-    html += `</div>`;
+// ── Strategy switcher ──────────────────────────────────────
+function switchStrategy(name) {
+  if (isRunning) return;
+  activeStrategy = name;
+  ['capitol','wheel','watchlist'].forEach(s => {
+    document.getElementById('tab-'+s).classList.toggle('active', s===name);
+    document.getElementById('panel-'+s).classList.toggle('active', s===name);
   });
-  return html;
+  const titles = {
+    capitol:   '<i class="fas fa-landmark"></i> Stage 1 — Capitol Trades Intelligence',
+    wheel:     '<i class="fas fa-circle-notch"></i> Stage 1 — Wheel Strategy Positions',
+    watchlist: '<i class="fas fa-list-check"></i> Stage 1 — Watchlist',
+  };
+  document.getElementById('source-stage-title').innerHTML = titles[name];
+  clearRoom();
 }
 
-// ── Set agent state ────────────────────────────────────────
-function setAgent(ticker, agentName, state, content) {
-  const id = AGENT_NAME_MAP[agentName]; if (!id) return;
-  const cell = document.getElementById(`ac-${ticker}-${id}`);
-  const pip  = document.getElementById(`pip-${ticker}-${id}`);
-  const out  = document.getElementById(`out-${ticker}-${id}`);
-  if (!cell || !pip || !out) return;
-  cell.classList.remove('active','done');
-  pip.className = 'agent-status-pip';
-  if (state === 'active') {
-    cell.classList.add('active'); pip.classList.add('active');
-    out.innerHTML = `<div class="agent-thinking"><i class="fas fa-circle-notch fa-spin" style="font-size:0.72rem;"></i> Analysing<div class="thinking-dots"><span></span><span></span><span></span></div></div>`;
-  } else if (state === 'done') {
-    cell.classList.add('done'); pip.classList.add('done');
-    const col = REPORT_COLOR[agentName] || '';
-    out.innerHTML = `<div class="agent-report ${col}">${esc(content||'')}</div>`;
-  } else if (state === 'error') {
-    pip.classList.add('error');
-    out.innerHTML = `<div style="color:var(--red);font-size:0.73rem;">${esc(content||'Error')}</div>`;
+// ── Watchlist management ───────────────────────────────────
+function addWatchlistTicker() {
+  const input = document.getElementById('watchlist-input');
+  const val = input.value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  if (!val || watchlistTickers.includes(val)) { input.value=''; return; }
+  watchlistTickers.push(val);
+  renderWatchlistTags();
+  input.value = '';
+  document.getElementById('watchlist-empty-hint').style.display = 'none';
+}
+function removeWatchlistTicker(ticker) {
+  watchlistTickers = watchlistTickers.filter(t => t !== ticker);
+  renderWatchlistTags();
+  if (!watchlistTickers.length) document.getElementById('watchlist-empty-hint').style.display = 'block';
+}
+function renderWatchlistTags() {
+  const wrap = document.getElementById('watchlist-tags');
+  wrap.innerHTML = watchlistTickers.map(t =>
+    `<span class="watchlist-tag">${t}<button onclick="removeWatchlistTicker('${t}')"><i class="fas fa-times"></i></button></span>`
+  ).join('');
+}
+function loadPresetWatchlist() {
+  watchlistTickers = [...PRESET_WATCHLIST];
+  renderWatchlistTags();
+  document.getElementById('watchlist-empty-hint').style.display = 'none';
+}
+
+// ── Get tickers for current strategy ──────────────────────
+function getStrategyTickers() {
+  if (activeStrategy === 'watchlist') return watchlistTickers;
+  if (activeStrategy === 'wheel') {
+    return Array.from(document.querySelectorAll('.wheel-checkbox:checked')).map(cb => cb.value);
   }
+  return null; // Capitol Trades — server selects
 }
 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
-
-// ── Switch active ticker tab ───────────────────────────────
-function switchTab(ticker) {
-  document.querySelectorAll('.ticker-tab').forEach(t => t.classList.remove('active'));
-  const tab = document.getElementById(`tab-${ticker}`);
-  if (tab) tab.classList.add('active');
-  document.querySelectorAll('.ticker-panel').forEach(p => p.style.display = 'none');
-  const panel = document.getElementById(`panel-${ticker}`);
-  if (panel) panel.style.display = 'block';
-  document.getElementById('current-ticker-badge').textContent = ticker;
-}
-
-// ── Main pipeline start ────────────────────────────────────
+// ── Start pipeline ─────────────────────────────────────────
 function startPipeline() {
   if (isRunning) return;
+  if (activeStrategy === 'watchlist' && !watchlistTickers.length) {
+    document.getElementById('watchlist-input').focus();
+    return;
+  }
   isRunning = true; runSeconds = 0; tickers = []; currentTickerIdx = 0; tickerResults = {};
-
   document.getElementById('run-icon').className = 'fas fa-circle-notch fa-spin';
   document.getElementById('run-label').textContent = 'Running...';
   document.getElementById('run-btn').disabled = true;
@@ -496,58 +614,60 @@ function startPipeline() {
   document.getElementById('master-progress').style.width = '2%';
   document.getElementById('stage-execution').style.display = 'none';
   document.getElementById('execution-tbody').innerHTML = '';
-
+  document.getElementById('source-idle').style.display = 'none';
   runTimer = setInterval(() => {
     runSeconds++;
     document.getElementById('master-elapsed').textContent = runSeconds + 's';
   }, 1000);
 
-  // Try WebSocket first, fall back to demo simulation
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}/ws/agents/`);
-  ws.onopen  = () => { ws.send(JSON.stringify({action:'run_full_pipeline'})); };
+  ws.onopen = () => {
+    const payload = { action: 'run_full_pipeline', strategy: activeStrategy };
+    if (activeStrategy !== 'capitol') payload.tickers = getStrategyTickers();
+    ws.send(JSON.stringify(payload));
+  };
   ws.onmessage = e => handleMsg(JSON.parse(e.data));
-  ws.onerror = () => runDemoSimulation();
-  ws.onclose = () => { if (isRunning) finishPipeline(); };
+  ws.onerror   = () => runDemoSimulation();
+  ws.onclose   = () => { if (isRunning) finishPipeline(); };
 }
 
 // ── Handle WebSocket messages ──────────────────────────────
 function handleMsg(msg) {
   const {type} = msg;
   if (type === 'capitol_start') {
-    setCapitolStatus('SCANNING', true);
+    setSourceStatus('SCANNING', true);
     document.getElementById('master-stage').textContent = 'Scanning Capitol Trades disclosures...';
-    document.getElementById('capitol-idle').style.display = 'none';
   } else if (type === 'capitol_ticker') {
-    addCapitolTicker(msg.ticker, msg.politician, msg.trade_type, msg.amount, msg.date);
+    addSourceTicker(msg.ticker, msg.politician, msg.trade_type, msg.amount, msg.date);
   } else if (type === 'capitol_done') {
     tickers = msg.tickers || [];
-    setCapitolStatus('COMPLETE', false, true);
+    setSourceStatus('COMPLETE', false, true);
     document.getElementById('master-progress').style.width = '15%';
     document.getElementById('master-stage').textContent = `${tickers.length} tickers selected — starting analysis...`;
     document.getElementById('ticker-counter').textContent = `0 / ${tickers.length} analysed`;
+    showQueuedTickers(tickers);
     buildTickerTabs(tickers);
   } else if (type === 'ticker_start') {
-    const {ticker} = msg;
-    markCapitolTickerAnalysing(ticker);
-    switchTab(ticker);
+    markSourceTickerAnalysing(msg.ticker);
+    switchTab(msg.ticker);
     document.getElementById('pipeline-status').textContent = 'RUNNING';
     document.getElementById('current-ticker-badge').style.display = 'block';
-    document.getElementById('master-stage').textContent = `Analysing ${ticker}...`;
+    document.getElementById('current-ticker-badge').textContent = msg.ticker;
+    document.getElementById('master-stage').textContent = `Analysing ${msg.ticker}...`;
   } else if (type === 'agent_start') {
-    const {agent, ticker} = msg;
-    setAgent(ticker, agent, 'active');
-    const pct = 15 + (currentTickerIdx / tickers.length * 80) + (AGENT_PROGRESS[agent] || 0) / tickers.length * 0.8;
-    document.getElementById('master-progress').style.width = Math.min(pct, 95) + '%';
-    document.getElementById('master-stage').textContent = `${ticker} — ${agent} working...`;
+    setAgent(msg.ticker, msg.agent, 'active');
+    const pct = 15 + (currentTickerIdx/tickers.length*80) + (AGENT_PROGRESS[msg.agent]||0)/tickers.length*0.8;
+    document.getElementById('master-progress').style.width = Math.min(pct,95)+'%';
+    document.getElementById('master-stage').textContent = `${msg.ticker} — ${msg.agent} working...`;
   } else if (type === 'agent_done') {
     setAgent(msg.ticker, msg.agent, 'done', msg.content);
   } else if (type === 'ticker_done') {
     const {ticker, rating, action, price_target, stop_loss, thesis} = msg;
-    markCapitolTickerDone(ticker);
+    markSourceTickerDone(ticker);
     const tab = document.getElementById(`tab-${ticker}`);
     if (tab) tab.classList.add('done');
-    tickerResults[ticker] = {rating, action, price_target, stop_loss, thesis};
+    tickerResults[ticker] = msg;
     currentTickerIdx++;
     document.getElementById('ticker-counter').textContent = `${currentTickerIdx} / ${tickers.length} analysed`;
     addExecutionRow(ticker, rating, action, price_target, stop_loss, thesis);
@@ -558,91 +678,149 @@ function handleMsg(msg) {
     document.getElementById('execution-status').style.display = 'inline-flex';
     finishPipeline();
   } else if (type === 'run_error') {
-    document.getElementById('master-stage').textContent = 'Error — ' + (msg.content || 'Unknown');
+    document.getElementById('master-stage').textContent = 'Error: ' + (msg.content||'Unknown');
     finishPipeline();
   }
 }
 
-// ── Capitol Trades UI helpers ──────────────────────────────
-function setCapitolStatus(text, scanning, done) {
-  const el = document.getElementById('capitol-status');
+// ── Source stage UI helpers ────────────────────────────────
+function setSourceStatus(text, scanning, done) {
+  const el = document.getElementById('source-status');
   el.textContent = text;
   el.style.color = done ? 'var(--green)' : scanning ? 'var(--blue-bright)' : 'var(--text-muted)';
 }
-
-function addCapitolTicker(ticker, politician, tradeType, amount, date) {
-  const wrap = document.getElementById('selected-tickers-wrap');
-  wrap.style.display = 'block';
-  document.getElementById('capitol-idle').style.display = 'none';
-  const container = document.getElementById('selected-tickers');
-  const pill = document.createElement('div');
+function addSourceTicker(ticker, politician, trade_type, amount, date) {
+  const wrap = document.getElementById('source-content');
+  const existing = document.getElementById(`src-${ticker}`);
+  if (existing) return;
+  const pill = document.createElement('span');
+  pill.id = `src-${ticker}`;
   pill.className = 'capitol-ticker selected';
-  pill.id = `ct-${ticker}`;
-  pill.innerHTML = `
-    <div>
-      <div style="font-weight:700;">${ticker}</div>
-      <div style="font-size:0.65rem;color:var(--text-muted);font-family:var(--font-body);">${politician}</div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:0.68rem;color:var(--green);">${tradeType}</div>
-      <div style="font-size:0.65rem;color:var(--text-muted);">${amount}</div>
-    </div>`;
-  container.appendChild(pill);
+  pill.style.marginRight = '8px'; pill.style.marginBottom = '8px';
+  pill.innerHTML = `<i class="fas fa-landmark" style="font-size:0.7rem;"></i>${ticker}
+    <span style="font-size:0.68rem;font-weight:400;color:var(--text-muted);">${politician} · ${trade_type} · ${amount}</span>`;
+  wrap.appendChild(pill);
+  showQueuedTickers([ticker]);
 }
-
-function markCapitolTickerAnalysing(ticker) {
-  const el = document.getElementById(`ct-${ticker}`);
-  if (el) { el.classList.remove('selected'); el.classList.add('analysing'); }
+function markSourceTickerAnalysing(ticker) {
+  const el = document.getElementById(`src-${ticker}`);
+  if (el) { el.className = 'capitol-ticker analysing'; }
 }
-
-function markCapitolTickerDone(ticker) {
-  const el = document.getElementById(`ct-${ticker}`);
-  if (el) { el.classList.remove('analysing','selected'); el.classList.add('done'); }
+function markSourceTickerDone(ticker) {
+  const el = document.getElementById(`src-${ticker}`);
+  if (el) { el.className = 'capitol-ticker done'; }
 }
-
-// ── Build ticker tabs and panels ──────────────────────────
-function buildTickerTabs(tickerList) {
-  const tabBar = document.getElementById('ticker-tabs');
-  const content = document.getElementById('pipeline-content');
-  tabBar.style.display = 'block';
-  tabBar.innerHTML = '';
-  content.innerHTML = '';
-  tickerList.forEach((ticker, i) => {
-    // Tab
-    const tab = document.createElement('div');
-    tab.className = 'ticker-tab' + (i === 0 ? ' active' : '');
-    tab.id = `tab-${ticker}`;
-    tab.innerHTML = `<div class="tab-pip"></div>${ticker}`;
-    tab.onclick = () => switchTab(ticker);
-    tabBar.appendChild(tab);
-    // Panel
-    const panel = document.createElement('div');
-    panel.className = 'ticker-panel';
-    panel.id = `panel-${ticker}`;
-    panel.style.display = i === 0 ? 'block' : 'none';
-    panel.style.padding = '20px 22px';
-    panel.innerHTML = buildPipelineHTML(ticker);
-    content.appendChild(panel);
+function showQueuedTickers(newTickers) {
+  const wrap = document.getElementById('selected-tickers-wrap');
+  const cont = document.getElementById('selected-tickers');
+  wrap.style.display = 'block';
+  newTickers.forEach(t => {
+    if (!document.getElementById(`qt-${t}`)) {
+      const span = document.createElement('span');
+      span.id = `qt-${t}`;
+      span.className = 'capitol-ticker';
+      span.textContent = t;
+      cont.appendChild(span);
+    }
   });
-  document.getElementById('current-ticker-badge').style.display = 'block';
-  document.getElementById('current-ticker-badge').textContent = tickerList[0];
+}
+
+// ── Agent pipeline UI helpers ──────────────────────────────
+function buildTickerTabs(tickerList) {
+  const tabs = document.getElementById('ticker-tabs');
+  tabs.style.display = 'block';
+  tabs.innerHTML = tickerList.map(t =>
+    `<span class="ticker-tab" id="tab-${t}" onclick="switchTab('${t}')">${t}</span>`
+  ).join('');
+  if (tickerList.length) {
+    switchTab(tickerList[0]);
+  }
+}
+function switchTab(ticker) {
+  document.querySelectorAll('.ticker-tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById(`tab-${ticker}`);
+  if (tab) tab.classList.add('active');
+  document.getElementById('current-ticker-badge').textContent = ticker;
+  const content = document.getElementById('pipeline-content');
+  // Build layers if not already built for this ticker
+  if (!document.getElementById(`layer-${ticker}`)) {
+    content.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.id = `layer-${ticker}`;
+    LAYERS.forEach(layer => {
+      const lh = document.createElement('div');
+      lh.className = 'layer-header';
+      lh.innerHTML = `<i class="${layer.icon}"></i>${layer.label}`;
+      wrap.appendChild(lh);
+      const grid = document.createElement('div');
+      grid.className = 'layer-grid';
+      layer.agents.forEach(agent => {
+        const cell = document.createElement('div');
+        cell.className = 'agent-cell';
+        cell.id = `cell-${ticker}-${agent.id}`;
+        cell.innerHTML = `
+          <div class="agent-cell-top">
+            <div class="agent-cell-icon ${agent.color}"><i class="${agent.icon}"></i></div>
+            <div class="agent-cell-info">
+              <div class="agent-cell-name">${agent.name}</div>
+              <div class="agent-cell-role">${agent.role}</div>
+            </div>
+            <span class="agent-cell-status idle" id="status-${ticker}-${agent.id}">IDLE</span>
+          </div>
+          <div class="agent-report" id="report-${ticker}-${agent.id}"></div>`;
+        grid.appendChild(cell);
+      });
+      wrap.appendChild(grid);
+    });
+    content.appendChild(wrap);
+  } else {
+    // Show/hide layers
+    document.querySelectorAll('[id^="layer-"]').forEach(el => {
+      el.style.display = el.id === `layer-${ticker}` ? 'block' : 'none';
+    });
+  }
+}
+function setAgent(ticker, agentName, state, content) {
+  const agentId = AGENT_NAME_MAP[agentName];
+  if (!agentId) return;
+  const cell   = document.getElementById(`cell-${ticker}-${agentId}`);
+  const status = document.getElementById(`status-${ticker}-${agentId}`);
+  const report = document.getElementById(`report-${ticker}-${agentId}`);
+  if (!cell) return;
+  cell.className = `agent-cell ${state}`;
+  if (state === 'active') {
+    status.className = 'agent-cell-status active';
+    status.innerHTML = '<span class="thinking-dots">THINKING</span>';
+  } else if (state === 'done') {
+    status.className = 'agent-cell-status done';
+    status.textContent = 'DONE';
+    if (content && report) {
+      const colorClass = REPORT_COLOR[agentName] ? REPORT_COLOR[agentName]+'-border' : '';
+      report.className = `agent-report visible ${colorClass}`;
+      report.textContent = content;
+    }
+  } else if (state === 'error') {
+    status.className = 'agent-cell-status error';
+    status.textContent = 'ERROR';
+  }
 }
 
 // ── Execution table ────────────────────────────────────────
 function addExecutionRow(ticker, rating, action, priceTarget, stopLoss, thesis) {
+  const strategyLabel = {capitol:'Capitol Trades', wheel:'Wheel Strategy', watchlist:'Watchlist'}[activeStrategy] || '—';
+  const wheelApplicable = (rating === 'Buy' || rating === 'Overweight');
+  const ratingLower = (rating||'hold').toLowerCase();
   const tbody = document.getElementById('execution-tbody');
-  const ratingClass = (rating||'hold').toLowerCase().replace(/\s+/g,'');
-  const actionClass = (action||'hold').toLowerCase();
-  const wheelEligible = ['buy','overweight'].includes(ratingClass);
   const row = document.createElement('tr');
   row.innerHTML = `
     <td class="ticker-cell">${ticker}</td>
-    <td><span class="badge badge-${ratingClass} final-badge ${ratingClass}">${rating||'—'}</span></td>
-    <td><span class="badge badge-${actionClass}">${(action||'—').toUpperCase()}</span></td>
+    <td style="font-size:0.75rem;color:var(--text-muted);">${strategyLabel}</td>
+    <td><span class="final-badge ${ratingLower}">${rating}</span></td>
+    <td><span class="badge badge-${action}">${(action||'hold').toUpperCase()}</span></td>
     <td class="mono">${priceTarget ? '$'+parseFloat(priceTarget).toFixed(2) : '—'}</td>
-    <td class="mono">${priceTarget ? '$'+(parseFloat(priceTarget)*1.22).toFixed(2) : '—'}</td>
-    <td class="mono negative">${stopLoss ? '$'+parseFloat(stopLoss).toFixed(2) : '—'}</td>
-    <td>${wheelEligible ? '<span class="badge badge-csp"><i class="fas fa-circle-notch"></i> Active</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">—</span>'}</td>
+    <td class="mono positive">${priceTarget ? '$'+(parseFloat(priceTarget)*1.25).toFixed(2) : '—'}</td>
+    <td class="mono negative">${stopLoss ? '$'+parseFloat(stopLoss).toFixed(2) : (priceTarget ? '$'+(parseFloat(priceTarget)*0.92).toFixed(2) : '—')}</td>
+    <td>${wheelApplicable ? '<span class="badge" style="background:var(--green-dim);color:var(--green);">Active</span>' : '<span style="color:var(--text-muted);font-size:0.75rem;">—</span>'}</td>
     <td style="max-width:280px;font-size:0.77rem;color:var(--text-secondary);">${thesis ? thesis.substring(0,80)+'...' : '—'}</td>`;
   tbody.appendChild(row);
   document.getElementById('stage-execution').style.display = 'block';
@@ -653,55 +831,72 @@ function finishPipeline() {
   isRunning = false;
   clearInterval(runTimer);
   document.getElementById('run-icon').className = 'fas fa-rocket';
-  document.getElementById('run-label').textContent = 'Run Full Pipeline';
+  document.getElementById('run-label').textContent = 'Run Pipeline';
   document.getElementById('run-btn').disabled = false;
   document.getElementById('pipeline-status').textContent = 'COMPLETE';
   if (ws && ws.readyState === WebSocket.OPEN) ws.close();
 }
 
+// ── Clear ──────────────────────────────────────────────────
 function clearRoom() {
   if (isRunning) return;
   document.getElementById('master-bar').style.display = 'none';
   document.getElementById('master-progress').style.width = '0%';
   document.getElementById('selected-tickers-wrap').style.display = 'none';
   document.getElementById('selected-tickers').innerHTML = '';
-  document.getElementById('capitol-idle').style.display = 'block';
-  document.getElementById('capitol-status').textContent = 'WAITING';
-  document.getElementById('capitol-status').style.color = '';
+  document.getElementById('source-idle').style.display = 'block';
+  document.getElementById('source-status').textContent = 'WAITING';
+  document.getElementById('source-status').style.color = '';
+  document.getElementById('source-content').innerHTML = '<div id="source-idle" style="color:var(--text-muted);font-size:0.82rem;font-style:italic;">Click "Run Pipeline" to begin...</div>';
   document.getElementById('ticker-tabs').style.display = 'none';
   document.getElementById('ticker-tabs').innerHTML = '';
-  document.getElementById('pipeline-content').innerHTML = `<div style="color:var(--text-muted);font-size:0.82rem;font-style:italic;text-align:center;padding:40px 0;"><i class="fas fa-arrow-up" style="margin-right:8px;"></i>Waiting for Capitol Trades to select tickers...</div>`;
+  document.getElementById('pipeline-content').innerHTML = `<div style="color:var(--text-muted);font-size:0.82rem;font-style:italic;text-align:center;padding:40px 0;"><i class="fas fa-arrow-up" style="margin-right:8px;"></i>Waiting for Stage 1 to select tickers...</div>`;
   document.getElementById('pipeline-status').textContent = 'WAITING';
   document.getElementById('current-ticker-badge').style.display = 'none';
   document.getElementById('stage-execution').style.display = 'none';
   document.getElementById('execution-tbody').innerHTML = '';
+  tickers = []; currentTickerIdx = 0; tickerResults = {};
 }
 
-// ── Demo simulation (no WebSocket / LLM keys) ─────────────
+// ── Demo simulation ────────────────────────────────────────
 function runDemoSimulation() {
-  const demoPoliticians = DEMO_TICKERS;
-  // Stage 1: Capitol Trades
-  setCapitolStatus('SCANNING', true);
-  document.getElementById('master-stage').textContent = 'Scanning Capitol Trades disclosures...';
-  document.getElementById('capitol-idle').style.display = 'none';
-  document.getElementById('master-progress').style.width = '5%';
+  let demoItems;
+  if (activeStrategy === 'capitol') {
+    demoItems = DEMO_CAPITOL;
+  } else if (activeStrategy === 'wheel') {
+    demoItems = DEMO_WHEEL.filter(d => {
+      const cb = document.querySelector(`.wheel-checkbox[value="${d.ticker}"]`);
+      return cb && cb.checked;
+    });
+  } else {
+    demoItems = watchlistTickers.map(t => ({ticker:t, politician:'Watchlist', trade_type:'Analysis', amount:'—', date:'Today'}));
+  }
+  if (!demoItems.length) demoItems = DEMO_CAPITOL;
+
+  setSourceStatus('SCANNING', true);
+  document.getElementById('master-stage').textContent = activeStrategy === 'capitol'
+    ? 'Scanning Capitol Trades disclosures...'
+    : activeStrategy === 'wheel' ? 'Loading Wheel positions from Alpaca...'
+    : 'Loading watchlist...';
 
   let delay = 600;
-  demoPoliticians.forEach((item, i) => {
+  demoItems.forEach((item, i) => {
     setTimeout(() => {
-      addCapitolTicker(item.ticker, item.politician, item.trade_type, item.amount, item.date);
+      addSourceTicker(item.ticker, item.politician || item.stage || 'Watchlist',
+        item.trade_type || item.stage || 'Analysis', item.amount || item.detail || '—', item.date || 'Today');
     }, delay + i * 800);
   });
 
   setTimeout(() => {
-    tickers = demoPoliticians.map(d => d.ticker);
-    setCapitolStatus('COMPLETE', false, true);
+    tickers = demoItems.map(d => d.ticker);
+    setSourceStatus('COMPLETE', false, true);
     document.getElementById('master-progress').style.width = '15%';
     document.getElementById('master-stage').textContent = `${tickers.length} tickers selected — starting analysis...`;
     document.getElementById('ticker-counter').textContent = `0 / ${tickers.length} analysed`;
+    showQueuedTickers(tickers);
     buildTickerTabs(tickers);
     runDemoTicker(0);
-  }, delay + demoPoliticians.length * 800 + 600);
+  }, delay + demoItems.length * 800 + 600);
 }
 
 function runDemoTicker(idx) {
@@ -713,37 +908,36 @@ function runDemoTicker(idx) {
     return;
   }
   const ticker = tickers[idx];
-  markCapitolTickerAnalysing(ticker);
+  markSourceTickerAnalysing(ticker);
   switchTab(ticker);
   document.getElementById('pipeline-status').textContent = 'RUNNING';
-  document.getElementById('master-stage').textContent = `Analysing ${ticker}...`;
-
+  document.getElementById('current-ticker-badge').style.display = 'block';
+  document.getElementById('current-ticker-badge').textContent = ticker;
   const allAgents = LAYERS.flatMap(l => l.agents);
   let agentDelay = 0;
   allAgents.forEach((agent, i) => {
     setTimeout(() => {
       setAgent(ticker, agent.name, 'active');
-      const pct = 15 + (idx / tickers.length * 70) + (i / allAgents.length * 70 / tickers.length);
-      document.getElementById('master-progress').style.width = Math.min(pct, 92) + '%';
+      const pct = 15 + (idx/tickers.length*70) + (i/allAgents.length*70/tickers.length);
+      document.getElementById('master-progress').style.width = Math.min(pct,92)+'%';
       document.getElementById('master-stage').textContent = `${ticker} — ${agent.name} working...`;
     }, agentDelay);
     setTimeout(() => {
-      const report = DEMO_REPORTS[agent.name] || 'Analysis complete.';
-      setAgent(ticker, agent.name, 'done', report);
+      setAgent(ticker, agent.name, 'done', DEMO_REPORTS[agent.name]||'Analysis complete.');
     }, agentDelay + 2200);
     agentDelay += 2600;
   });
-
   setTimeout(() => {
-    const rating = ['Buy','Overweight','Hold'][idx % 3];
-    const action = rating === 'Buy' || rating === 'Overweight' ? 'buy' : 'hold';
+    const ratings = ['Buy','Overweight','Hold'];
+    const rating = ratings[idx % ratings.length];
+    const action = (rating==='Buy'||rating==='Overweight') ? 'buy' : 'hold';
     const basePrice = [875, 415, 195][idx % 3];
-    markCapitolTickerDone(ticker);
+    markSourceTickerDone(ticker);
     const tab = document.getElementById(`tab-${ticker}`);
     if (tab) tab.classList.add('done');
     currentTickerIdx++;
     document.getElementById('ticker-counter').textContent = `${currentTickerIdx} / ${tickers.length} analysed`;
-    addExecutionRow(ticker, rating, action, basePrice, basePrice * 0.92, DEMO_REPORTS['Portfolio Manager']);
+    addExecutionRow(ticker, rating, action, basePrice, basePrice*0.92, DEMO_REPORTS['Portfolio Manager']);
     runDemoTicker(idx + 1);
   }, agentDelay + 800);
 }

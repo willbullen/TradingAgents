@@ -8,6 +8,17 @@ DEBUG = True
 SECRET_KEY = "preview-secret-key-not-for-production"
 ALLOWED_HOSTS = ["*"]
 
+# Trust the Manus proxy domain and localhost for CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.manus.computer",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+
 # Use SQLite instead of PostgreSQL for the preview
 DATABASES = {
     "default": {

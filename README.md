@@ -180,6 +180,44 @@ An interface will appear showing results as they load, letting you track the age
   <img src="assets/cli/cli_transaction.png" width="100%" style="display: inline-block; margin: 0 2%;">
 </p>
 
+## Autonomous Trading System
+
+TradingAgents now includes a fully autonomous orchestration layer that drives the multi-agent framework headlessly and executes trades directly via the Alpaca API. This eliminates the need for manual CLI input and allows the system to run on a cron schedule.
+
+### Three-Layer Architecture
+
+1. **Orchestrator (Layer 1)**: Runs on a schedule, selects tickers to analyze, and drives the system.
+2. **TradingAgents Core (Layer 2)**: The original multi-agent analysis engine that produces structured `PortfolioDecision` outputs.
+3. **Execution Engine (Layer 3)**: Maps decisions to Alpaca orders, manages trailing stops, and handles options strategies.
+
+### Key Features
+
+- **Politician Copy-Trading**: Automatically fetches the latest stock trades disclosed by high-performing US Congress members via the Quiver Quantitative API (Capitol Trades).
+- **Alpaca Integration**: Maps `Buy/Overweight/Hold/Underweight/Sell` ratings directly to market or limit orders with automated position sizing.
+- **Trailing Stop Monitor**: A background task that continuously ratchets stop-loss floors upward as prices rise, locking in profits automatically.
+- **Wheel Strategy Options**: Systematically sells cash-secured puts and covered calls on high-rated tickers to collect passive premium income.
+
+### Usage
+
+Set up your credentials in `.env.autonomous` (see `.env.autonomous.example`), then run the orchestrator:
+
+```bash
+# Full run: fetch tickers, analyze, and execute trades
+python -m autonomous.orchestrator
+
+# Run analysis only (no orders placed)
+python -m autonomous.orchestrator --mode analyse
+
+# Update trailing stops only (run every 5 mins during market hours)
+python -m autonomous.orchestrator --mode stops
+
+# Run the wheel strategy options cycle
+python -m autonomous.orchestrator --mode wheel
+
+# Use a static watchlist instead of Capitol Trades
+python -m autonomous.orchestrator --tickers NVDA MSFT AAPL
+```
+
 ## TradingAgents Package
 
 ### Implementation Details

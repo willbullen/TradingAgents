@@ -9,6 +9,7 @@ urlpatterns = [
     path("wheel/", views.wheel_strategy, name="wheel_strategy"),
     path("settings/", views.settings_view, name="settings"),
     path("agent-room/", views.agent_room, name="agent_room"),
+    path("landing/", views.landing, name="landing"),
     # API
     path("api/trigger-run/", views.trigger_run, name="trigger_run"),
     path("api/trigger-sync/", views.trigger_sync, name="trigger_sync"),

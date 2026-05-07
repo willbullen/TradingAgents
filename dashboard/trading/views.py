@@ -222,3 +222,7 @@ def agent_room(request):
         "past_decisions": past_decisions,
     }
     return render(request, "trading/agent_room.html", context)
+
+def landing(request):
+    """Public landing page — explains the system, workflow, and how to use it."""
+    return render(request, "trading/landing.html", {})

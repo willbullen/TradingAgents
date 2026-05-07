@@ -1,0 +1,13 @@
+<div class="agent-cell{% if tall %} tall{% endif %}" id="ac-{{ agent_id }}">
+  <div class="agent-cell-top">
+    <div class="agent-cell-icon {{ color }}"><i class="{{ icon }}"></i></div>
+    <div class="agent-cell-meta">
+      <div class="agent-cell-name">{{ name }}</div>
+      <div class="agent-cell-role">{{ role }}</div>
+    </div>
+    <div class="agent-status-pip" id="pip-{{ agent_id }}"></div>
+  </div>
+  <div class="agent-output" id="out-{{ agent_id }}">
+    <div class="agent-idle">{{ idle }}</div>
+  </div>
+</div>

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingAgents — Autonomous AI Trading System</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/obsidian.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+  /* ── Landing-specific overrides ─────────────────────── */
+  body { overflow-x: hidden; }
+  .landing { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Nav ─────────────────────────────────────────────── */
+  .land-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(7,11,20,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .land-nav-brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--font-display); font-size: 1.05rem; font-weight: 700;
+    color: var(--text-primary); text-decoration: none;
+  }
+  .land-nav-logo {
+    width: 34px; height: 34px;
+    background: var(--grad-blue-violet);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 16px rgba(59,130,246,0.4);
+  }
+  .land-nav-links { display: flex; align-items: center; gap: 4px; }
+  .land-nav-link {
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    font-size: 0.85rem; color: var(--text-secondary);
+    text-decoration: none; transition: all 0.2s;
+  }
+  .land-nav-link:hover { color: var(--text-primary); background: var(--bg-elevated); }
+  .land-nav-cta {
+    background: var(--grad-blue-violet);
+    color: #fff; padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem; font-weight: 600;
+    text-decoration: none; transition: opacity 0.2s;
+    box-shadow: 0 0 20px rgba(59,130,246,0.3);
+  }
+  .land-nav-cta:hover { opacity: 0.88; }
+
+  /* ── Hero ─────────────────────────────────────────────── */
+  .hero {
+    padding: 160px 0 100px;
+    text-align: center;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 600px;
+    background: radial-gradient(ellipse at center, rgba(59,130,246,0.12) 0%, rgba(124,58,237,0.08) 40%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--blue-dim); border: 1px solid var(--border-accent);
+    padding: 5px 14px; border-radius: 20px;
+    font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+    color: var(--blue-bright); letter-spacing: 0.1em;
+    margin-bottom: 28px;
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 700; line-height: 1.1;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+  }
+  .hero-title .grad { background: var(--grad-blue-violet); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero-sub {
+    font-size: 1.1rem; color: var(--text-secondary);
+    max-width: 620px; margin: 0 auto 40px;
+    line-height: 1.7;
+  }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero-btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--grad-blue-violet);
+    color: #fff; padding: 13px 28px;
+    border-radius: var(--radius); font-family: var(--font-display);
+    font-size: 0.95rem; font-weight: 600; text-decoration: none;
+    box-shadow: 0 0 32px rgba(59,130,246,0.35);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .hero-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 40px rgba(59,130,246,0.5); }
+  .hero-btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-secondary); padding: 13px 28px;
+    border-radius: var(--radius); font-size: 0.95rem; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .hero-btn-ghost:hover { border-color: var(--border-accent); color: var(--text-primary); background: var(--bg-elevated); }
+
+  /* ── Stats strip ─────────────────────────────────────── */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; margin: 60px 0;
+  }
+  .strip-stat {
+    background: var(--bg-card); padding: 28px 24px; text-align: center;
+    backdrop-filter: blur(8px);
+  }
+  .strip-stat-val {
+    font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+    background: var(--grad-blue-violet); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; margin-bottom: 6px;
+  }
+  .strip-stat-label { font-size: 0.78rem; color: var(--text-muted); }
+
+  /* ── Section ─────────────────────────────────────────── */
+  section { padding: 80px 0; }
+  .section-eyebrow {
+    font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--blue-bright); margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700; color: var(--text-primary); margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .section-sub {
+    font-size: 1rem; color: var(--text-secondary); max-width: 600px;
+    line-height: 1.7; margin-bottom: 48px;
+  }
+
+  /* ── How it works pipeline ───────────────────────────── */
+  .pipeline-flow {
+    display: flex; flex-direction: column; gap: 0;
+    position: relative;
+  }
+  .pipeline-flow::before {
+    content: '';
+    position: absolute;
+    left: 31px; top: 40px; bottom: 40px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--blue), var(--violet), var(--green));
+    opacity: 0.3;
+  }
+  .flow-step {
+    display: flex; gap: 24px; align-items: flex-start;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--bg-elevated); border: 2px solid var(--border-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
+    color: var(--blue-bright); flex-shrink: 0; z-index: 1;
+  }
+  .flow-body { flex: 1; }
+  .flow-title {
+    font-family: var(--font-display); font-size: 1rem; font-weight: 600;
+    color: var(--text-primary); margin-bottom: 6px;
+  }
+  .flow-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.65; }
+  .flow-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .flow-tag {
+    font-family: var(--font-mono); font-size: 0.68rem;
+    padding: 3px 9px; border-radius: 20px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  /* ── Feature grid ────────────────────────────────────── */
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  }
+  .feature-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px 24px;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.25s, transform 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--grad-blue-violet); opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .feature-card:hover { border-color: var(--border-accent); transform: translateY(-3px); }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon {
+    width: 44px; height: 44px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: 16px;
+  }
+  .feature-title {
+    font-family: var(--font-display); font-size: 0.95rem; font-weight: 600;
+    color: var(--text-primary); margin-bottom: 8px;
+  }
+  .feature-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; }
+
+  /* ── Agent grid ──────────────────────────────────────── */
+  .agent-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  }
+  .agent-pill {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 16px;
+    display: flex; align-items: center; gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .agent-pill:hover { border-color: var(--border-accent); }
+  .agent-pill-icon {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+  }
+  .agent-pill-name { font-family: var(--font-display); font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+  .agent-pill-role { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Setup steps ─────────────────────────────────────── */
+  .setup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .setup-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px 24px;
+    position: relative;
+  }
+  .setup-num {
+    font-family: var(--font-mono); font-size: 2.5rem; font-weight: 700;
+    background: var(--grad-blue-violet); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; margin-bottom: 12px; opacity: 0.6;
+  }
+  .setup-title { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+  .setup-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; }
+  .setup-code {
+    margin-top: 12px; background: var(--bg-elevated);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-family: var(--font-mono); font-size: 0.75rem;
+    color: var(--blue-bright); border: 1px solid var(--border);
+    overflow-x: auto; white-space: nowrap;
+  }
+
+  /* ── CTA ─────────────────────────────────────────────── */
+  .cta-section {
+    text-align: center; padding: 100px 0;
+    position: relative;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .cta-title {
+    font-family: var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    font-weight: 700; color: var(--text-primary); margin-bottom: 16px;
+  }
+  .cta-sub { font-size: 1rem; color: var(--text-secondary); margin-bottom: 36px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+  /* ── Footer ──────────────────────────────────────────── */
+  .land-footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .land-footer-note { font-size: 0.78rem; color: var(--text-muted); }
+  .land-footer-links { display: flex; gap: 20px; }
+  .land-footer-link { font-size: 0.78rem; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+  .land-footer-link:hover { color: var(--text-secondary); }
+
+  /* ── Divider ─────────────────────────────────────────── */
+  .divider { height: 1px; background: var(--border); margin: 0; }
+
+  /* ── Responsive ──────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .feature-grid, .agent-grid { grid-template-columns: 1fr 1fr; }
+    .setup-grid { grid-template-columns: 1fr; }
+    .stats-strip { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .feature-grid, .agent-grid, .stats-strip { grid-template-columns: 1fr; }
+    .land-nav-links { display: none; }
+  }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────── -->
+<nav class="land-nav">
+  <a href="{% url 'landing' %}" class="land-nav-brand">
+    <div class="land-nav-logo">🤖</div>
+    TradingAgents
+  </a>
+  <div class="land-nav-links">
+    <a href="#how-it-works" class="land-nav-link">How It Works</a>
+    <a href="#features" class="land-nav-link">Features</a>
+    <a href="#agents" class="land-nav-link">Agents</a>
+    <a href="#get-started" class="land-nav-link">Get Started</a>
+  </div>
+  <a href="{% url 'overview' %}" class="land-nav-cta">
+    <i class="fas fa-chart-pie"></i> Open Dashboard
+  </a>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────── -->
+<div style="padding-top:64px;">
+<div class="landing">
+  <div class="hero">
+    <div class="hero-eyebrow">
+      <span class="live-dot"></span>
+      AUTONOMOUS · MULTI-AGENT · AI-POWERED
+    </div>
+    <h1 class="hero-title">
+      A Wall Street Trading Firm<br>
+      <span class="grad">Running on Your Machine</span>
+    </h1>
+    <p class="hero-sub">
+      TradingAgents deploys 11 specialised AI agents that analyse markets, debate trade ideas, manage risk, and execute orders — fully autonomously, 24/7, without human input.
+    </p>
+    <div class="hero-actions">
+      <a href="{% url 'agent_room' %}" class="hero-btn-primary">
+        <i class="fas fa-rocket"></i> Watch Agents Work Live
+      </a>
+      <a href="#how-it-works" class="hero-btn-ghost">
+        <i class="fas fa-circle-play"></i> See How It Works
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Strip -->
+  <div class="stats-strip">
+    <div class="strip-stat">
+      <div class="strip-stat-val">11</div>
+      <div class="strip-stat-label">Specialised AI Agents</div>
+    </div>
+    <div class="strip-stat">
+      <div class="strip-stat-val">4</div>
+      <div class="strip-stat-label">Pipeline Layers</div>
+    </div>
+    <div class="strip-stat">
+      <div class="strip-stat-val">10+</div>
+      <div class="strip-stat-label">LLM Providers Supported</div>
+    </div>
+    <div class="strip-stat">
+      <div class="strip-stat-val">2</div>
+      <div class="strip-stat-label">Live Trading Strategies</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── How It Works ─────────────────────────────────────── -->
+<div class="landing" id="how-it-works">
+  <section>
+    <div class="section-eyebrow">THE WORKFLOW</div>
+    <h2 class="section-title">From Market Data to Executed Trade</h2>
+    <p class="section-sub">Every trading day, the system runs a fully automated pipeline — no human input required at any stage.</p>
+
+    <div class="pipeline-flow">
+
+      <div class="flow-step">
+        <div class="flow-num">01</div>
+        <div class="flow-body">
+          <div class="flow-title">Ticker Selection — Capitol Trades Intelligence</div>
+          <div class="flow-desc">Each morning, the system scrapes the legally-required trade disclosures filed by US Congress members. It scores politicians by historical performance and recency, then selects the tickers they've been buying. These are the stocks that go into the analysis pipeline.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Quiver Quantitative API</span>
+            <span class="flow-tag">Capitol Trades</span>
+            <span class="flow-tag">Politician scoring</span>
+            <span class="flow-tag">8:00 AM daily</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">02</div>
+        <div class="flow-body">
+          <div class="flow-title">Layer 1 — Four Analyst Reports Generated in Parallel</div>
+          <div class="flow-desc">For each selected ticker, four specialist AI agents produce independent research reports simultaneously. The Market Analyst runs technical indicators (MACD, RSI, Bollinger Bands). The Fundamentals Analyst evaluates earnings, free cash flow, and valuation. The News Analyst scans global news and macro events. The Sentiment Analyst reads social media, Reddit, and institutional mood.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Market Analyst</span>
+            <span class="flow-tag">Fundamentals Analyst</span>
+            <span class="flow-tag">News Analyst</span>
+            <span class="flow-tag">Sentiment Analyst</span>
+            <span class="flow-tag">LangGraph streaming</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">03</div>
+        <div class="flow-body">
+          <div class="flow-title">Layer 2 — Bull vs Bear Debate, Research Manager Judges</div>
+          <div class="flow-desc">A Bull Researcher and a Bear Researcher each read all four analyst reports and construct the strongest possible argument for their side. They debate multiple rounds. The Research Manager then acts as judge — weighing both arguments and issuing a formal Investment Plan with a recommended action and position size.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Bull Researcher</span>
+            <span class="flow-tag">Bear Researcher</span>
+            <span class="flow-tag">Research Manager</span>
+            <span class="flow-tag">Multi-round debate</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">04</div>
+        <div class="flow-body">
+          <div class="flow-title">Layer 3 — Trader Proposes, Risk Team Debates</div>
+          <div class="flow-desc">The Trader agent synthesises the Investment Plan into a concrete trade proposal: entry price, position size, price target, and stop-loss level. Three Risk Analysts then debate the proposal from different angles — Aggressive (maximise return), Conservative (protect capital), and Neutral (balanced view).</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Trader</span>
+            <span class="flow-tag">Aggressive Risk Analyst</span>
+            <span class="flow-tag">Conservative Risk Analyst</span>
+            <span class="flow-tag">Neutral Risk Analyst</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">05</div>
+        <div class="flow-body">
+          <div class="flow-title">Layer 4 — Portfolio Manager Issues Final Decision</div>
+          <div class="flow-desc">The Portfolio Manager reads everything — all four analyst reports, the debate, the investment plan, the trade proposal, and all three risk assessments — and issues a structured final decision with a 5-tier rating: Buy, Overweight, Hold, Underweight, or Sell. This decision is saved to the database and displayed in the Agent Log.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Portfolio Manager</span>
+            <span class="flow-tag">Buy / Overweight / Hold / Underweight / Sell</span>
+            <span class="flow-tag">Structured output</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">06</div>
+        <div class="flow-body">
+          <div class="flow-title">Execution — Alpaca Order Placed Automatically</div>
+          <div class="flow-desc">The Alpaca Execution Bridge maps the Portfolio Manager's rating to an order. Buy and Overweight ratings trigger a market buy order sized according to the position sizing recommendation. Hold means no action. Underweight reduces an existing position. Sell closes it entirely. All orders are logged with their order ID.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Alpaca API</span>
+            <span class="flow-tag">Paper trading supported</span>
+            <span class="flow-tag">Order logging</span>
+            <span class="flow-tag">9:00 AM Mon–Fri</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">07</div>
+        <div class="flow-body">
+          <div class="flow-title">Protection — Trailing Stop Monitor Runs Every 5 Minutes</div>
+          <div class="flow-desc">A separate Celery task runs every 5 minutes during market hours. It checks every open position and ratchets the stop-loss floor upward whenever the price rises — locking in profits automatically. If the price drops to the stop floor, Alpaca executes the sell. The floor only ever moves up, never down.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Trailing stop</span>
+            <span class="flow-tag">Every 5 minutes</span>
+            <span class="flow-tag">Persistent state</span>
+            <span class="flow-tag">Celery Beat</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-num">08</div>
+        <div class="flow-body">
+          <div class="flow-title">Income — The Wheel Strategy Generates Premium</div>
+          <div class="flow-desc">For tickers rated Buy or Overweight, the Wheel Strategy activates. Stage 1: sell a cash-secured put at the stop-loss strike — collecting premium while waiting to buy. If assigned, Stage 2: sell a covered call at the price target strike — collecting premium while waiting to sell. The cycle repeats, generating income on every position.</div>
+          <div class="flow-tags">
+            <span class="flow-tag">Cash-secured puts</span>
+            <span class="flow-tag">Covered calls</span>
+            <span class="flow-tag">Premium collection</span>
+            <span class="flow-tag">Options</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── Features ──────────────────────────────────────────── -->
+<div class="landing" id="features">
+  <section>
+    <div class="section-eyebrow">CAPABILITIES</div>
+    <h2 class="section-title">Everything in One System</h2>
+    <p class="section-sub">Six core capabilities that work together to create a fully autonomous trading operation.</p>
+
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon blue-dim" style="background:var(--blue-dim);color:var(--blue-bright);">
+          <i class="fas fa-landmark"></i>
+        </div>
+        <div class="feature-title">Capitol Trades Intelligence</div>
+        <div class="feature-desc">Automatically tracks and scores trade disclosures by US Congress members. Filters to high-performing politicians (Pelosi, McCaul, Gottheimer) and uses their buys as the input ticker list for the AI analysis pipeline. Historically outperforms the S&P 500 by 10-20%.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--violet-dim);color:var(--violet-bright);">
+          <i class="fas fa-brain"></i>
+        </div>
+        <div class="feature-title">11-Agent AI Analysis</div>
+        <div class="feature-desc">The full TradingAgents multi-agent framework runs on every ticker. Four analysts, two debaters, a research manager, a trader, three risk analysts, and a portfolio manager — all powered by your choice of LLM (GPT-5, Claude 4, Gemini 3, Grok, DeepSeek, or local Ollama).</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--green-dim);color:var(--green);">
+          <i class="fas fa-circle-notch"></i>
+        </div>
+        <div class="feature-title">Wheel Strategy Automation</div>
+        <div class="feature-desc">Fully automated options income strategy. The system uses TradingAgents' own price targets and stop-loss levels as the call and put strikes — so the AI analysis directly informs the options strategy. Tracks premium collected, DTE countdown, and cycle P&L per ticker.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--red-dim);color:var(--red);">
+          <i class="fas fa-shield-halved"></i>
+        </div>
+        <div class="feature-title">Trailing Stop Protection</div>
+        <div class="feature-desc">Every open position is monitored every 5 minutes. As the price rises, the stop-loss floor rises with it — locking in profits automatically. The floor never moves down. State is persisted across restarts so no position is ever left unprotected.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--cyan-dim);color:var(--cyan);">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="feature-title">Agent Room — Live View</div>
+        <div class="feature-desc">Watch all 11 agents work in real-time. Each agent card activates with a live indicator, shows a thinking animation, then reveals its full report as the LangGraph pipeline streams results. The final Portfolio Manager decision animates in with a colour-coded rating badge.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--yellow-dim);color:var(--yellow);">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="feature-title">Celery Beat Scheduling</div>
+        <div class="feature-desc">All tasks are managed by Celery Beat with schedules stored in PostgreSQL — editable from the Django admin without any code changes. The daily analysis, trailing stop monitor, wheel cycle, position sync, and Capitol Trades fetch all run automatically on their own schedules.</div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── Agents ─────────────────────────────────────────────── -->
+<div class="landing" id="agents">
+  <section>
+    <div class="section-eyebrow">THE TEAM</div>
+    <h2 class="section-title">11 Specialised AI Agents</h2>
+    <p class="section-sub">Each agent has a single, well-defined role. Together they replicate the structure of a real trading firm.</p>
+
+    <div class="agent-grid">
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--blue-dim);color:var(--blue-bright);"><i class="fas fa-chart-candlestick"></i></div>
+        <div><div class="agent-pill-name">Market Analyst</div><div class="agent-pill-role">MACD · RSI · Bollinger Bands</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--green-dim);color:var(--green);"><i class="fas fa-building-columns"></i></div>
+        <div><div class="agent-pill-name">Fundamentals Analyst</div><div class="agent-pill-role">Earnings · FCF · Valuation</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--cyan-dim);color:var(--cyan);"><i class="fas fa-newspaper"></i></div>
+        <div><div class="agent-pill-name">News Analyst</div><div class="agent-pill-role">Macro · Catalysts · Events</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--violet-dim);color:var(--violet-bright);"><i class="fas fa-comments"></i></div>
+        <div><div class="agent-pill-name">Sentiment Analyst</div><div class="agent-pill-role">Reddit · Twitter · Mood</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--green-dim);color:var(--green);"><i class="fas fa-arrow-trend-up"></i></div>
+        <div><div class="agent-pill-name">Bull Researcher</div><div class="agent-pill-role">Argues the long case</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--red-dim);color:var(--red);"><i class="fas fa-arrow-trend-down"></i></div>
+        <div><div class="agent-pill-name">Bear Researcher</div><div class="agent-pill-role">Argues the short case</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--yellow-dim);color:var(--yellow);"><i class="fas fa-gavel"></i></div>
+        <div><div class="agent-pill-name">Research Manager</div><div class="agent-pill-role">Judges debate · Issues plan</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--blue-dim);color:var(--blue-bright);"><i class="fas fa-person-chalkboard"></i></div>
+        <div><div class="agent-pill-name">Trader</div><div class="agent-pill-role">Synthesises trade proposal</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--red-dim);color:var(--red);"><i class="fas fa-bolt"></i></div>
+        <div><div class="agent-pill-name">Aggressive Risk</div><div class="agent-pill-role">High-risk perspective</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--cyan-dim);color:var(--cyan);"><i class="fas fa-umbrella"></i></div>
+        <div><div class="agent-pill-name">Conservative Risk</div><div class="agent-pill-role">Capital preservation</div></div>
+      </div>
+      <div class="agent-pill">
+        <div class="agent-pill-icon" style="background:var(--violet-dim);color:var(--violet-bright);"><i class="fas fa-circle-half-stroke"></i></div>
+        <div><div class="agent-pill-name">Neutral Risk</div><div class="agent-pill-role">Balanced assessment</div></div>
+      </div>
+      <div class="agent-pill" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04);">
+        <div class="agent-pill-icon" style="background:var(--yellow-dim);color:var(--yellow);"><i class="fas fa-crown"></i></div>
+        <div><div class="agent-pill-name">Portfolio Manager</div><div class="agent-pill-role">Final decision · Buy/Sell/Hold</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── Get Started ────────────────────────────────────────── -->
+<div class="landing" id="get-started">
+  <section>
+    <div class="section-eyebrow">SETUP GUIDE</div>
+    <h2 class="section-title">Up and Running in 3 Steps</h2>
+    <p class="section-sub">The entire system deploys with a single Docker Compose command. Start with paper trading to validate the pipeline before going live.</p>
+
+    <div class="setup-grid">
+
+      <div class="setup-card">
+        <div class="setup-num">01</div>
+        <div class="setup-title">Configure Your Credentials</div>
+        <div class="setup-desc">Copy the example environment file and fill in your API keys. You'll need an Alpaca account (free, paper trading available), a Quiver Quantitative API key (free tier), and an OpenAI or other LLM provider key.</div>
+        <div class="setup-code">cp .env.example .env<br># Edit .env with your keys</div>
+      </div>
+
+      <div class="setup-card">
+        <div class="setup-num">02</div>
+        <div class="setup-title">Start the Full Stack</div>
+        <div class="setup-desc">Docker Compose starts the Django web server, Celery worker, Celery Beat scheduler, PostgreSQL database, and Redis broker. The entrypoint script runs migrations and configures all schedules automatically on first boot.</div>
+        <div class="setup-code">docker compose up -d</div>
+      </div>
+
+      <div class="setup-card">
+        <div class="setup-num">03</div>
+        <div class="setup-title">Open the Dashboard</div>
+        <div class="setup-desc">Navigate to the dashboard, open the Agent Room, type a ticker, and hit Run Agents to watch the full pipeline execute. Check the Agent Log for the decision, then switch Alpaca from paper to live when you're confident in the results.</div>
+        <div class="setup-code">http://localhost:8080</div>
+      </div>
+
+    </div>
+
+    <!-- Key Credentials Table -->
+    <div class="glass-card" style="margin-top:40px;">
+      <div class="glass-card-header">
+        <span class="glass-card-title"><i class="fas fa-key"></i> Required Credentials</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr><th>Service</th><th>Purpose</th><th>Free Tier</th><th>Where to Get It</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ticker-cell">Alpaca</td>
+              <td style="color:var(--text-secondary);">Order execution, position management</td>
+              <td><span class="badge badge-success">Yes — paper trading</span></td>
+              <td class="mono" style="color:var(--blue-bright);">alpaca.markets</td>
+            </tr>
+            <tr>
+              <td class="ticker-cell">Quiver Quant</td>
+              <td style="color:var(--text-secondary);">Capitol Trades disclosures feed</td>
+              <td><span class="badge badge-success">Yes</span></td>
+              <td class="mono" style="color:var(--blue-bright);">quiverquant.com</td>
+            </tr>
+            <tr>
+              <td class="ticker-cell">OpenAI</td>
+              <td style="color:var(--text-secondary);">LLM for all 11 agents</td>
+              <td><span class="badge badge-hold">Pay-per-use</span></td>
+              <td class="mono" style="color:var(--blue-bright);">platform.openai.com</td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted);">Anthropic / Google / xAI</td>
+              <td style="color:var(--text-secondary);">Alternative LLM providers</td>
+              <td><span class="badge badge-hold">Optional</span></td>
+              <td style="color:var(--text-muted);font-size:0.8rem;">Any of the 10+ supported providers</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── CTA ───────────────────────────────────────────────── -->
+<div class="landing">
+  <div class="cta-section">
+    <div class="hero-eyebrow" style="margin-bottom:20px;">
+      <i class="fas fa-triangle-exclamation"></i>
+      FOR EDUCATIONAL AND RESEARCH PURPOSES ONLY
+    </div>
+    <h2 class="cta-title">Ready to Watch the Agents Work?</h2>
+    <p class="cta-sub">Open the Agent Room, type any ticker, and watch 11 AI agents analyse, debate, and decide — in real-time.</p>
+    <div class="hero-actions">
+      <a href="{% url 'agent_room' %}" class="hero-btn-primary">
+        <i class="fas fa-users"></i> Open Agent Room
+      </a>
+      <a href="{% url 'overview' %}" class="hero-btn-ghost">
+        <i class="fas fa-chart-pie"></i> View Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ────────────────────────────────────────────── -->
+<div class="divider"></div>
+<div class="landing">
+  <footer class="land-footer">
+    <div class="land-footer-note">
+      TradingAgents Dashboard — Built on <a href="https://github.com/TauricResearch/TradingAgents" target="_blank" style="color:var(--blue-bright);text-decoration:none;">TauricResearch/TradingAgents</a> · Not financial advice
+    </div>
+    <div class="land-footer-links">
+      <a href="{% url 'overview' %}" class="land-footer-link">Dashboard</a>
+      <a href="{% url 'agent_room' %}" class="land-footer-link">Agent Room</a>
+      <a href="{% url 'capitol_trades' %}" class="land-footer-link">Capitol Trades</a>
+      <a href="{% url 'wheel_strategy' %}" class="land-footer-link">Wheel Strategy</a>
+      <a href="https://github.com/willbullen/TradingAgents" target="_blank" class="land-footer-link">GitHub</a>
+    </div>
+  </footer>
+</div>
+
+<!-- Smooth scroll -->
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+</script>
+
+</body>
+</html>

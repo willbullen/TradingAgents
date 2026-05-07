@@ -213,3 +213,12 @@ def api_decisions(request):
         )[:50]
     )
     return JsonResponse({"decisions": decisions})
+
+def agent_room(request):
+    """Agent Room — live view of all 8 TradingAgents agents working in real-time."""
+    past_decisions = TradeDecision.objects.order_by("-created_at")[:10]
+    context = {
+        "page": "agent_room",
+        "past_decisions": past_decisions,
+    }
+    return render(request, "trading/agent_room.html", context)

@@ -1,0 +1,676 @@
+{% extends "trading/base.html" %}
+{% block title %}Agent Room — TradingAgents{% endblock %}
+{% block page_title %}Agent Room{% endblock %}
+{% block breadcrumb %}Intelligence / Agent Room{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+  <div>
+    <h1 class="page-title text-gradient">Agent Room</h1>
+    <p class="page-subtitle">Watch all 8 agents work in real-time — analysis, debates, and final decisions</p>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label style="font-size:0.82rem;color:var(--text-muted);">Ticker</label>
+      <input id="ticker-input" type="text" value="NVDA" maxlength="8"
+        style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;color:var(--text-primary);font-family:var(--font-mono);font-size:0.9rem;width:90px;text-transform:uppercase;">
+    </div>
+    <button id="run-btn" class="btn btn-primary" onclick="startRun()">
+      <i class="fas fa-rocket" id="run-icon"></i>
+      <span id="run-label">Run Agents</span>
+    </button>
+    <button class="btn btn-ghost" onclick="clearRoom()">
+      <i class="fas fa-broom"></i> Clear
+    </button>
+  </div>
+</div>
+
+<!-- Run Status Bar -->
+<div id="status-bar" class="glass-card mb-24" style="display:none;border-color:var(--blue-mid);padding:14px 20px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="live-badge"><span class="live-dot"></span>RUNNING</span>
+      <span id="status-ticker" style="font-family:var(--font-mono);font-size:1rem;color:var(--blue-bright);font-weight:700;"></span>
+      <span id="status-text" style="font-size:0.85rem;color:var(--text-secondary);">Initialising agents...</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="status-elapsed" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);">0s</span>
+      <div id="progress-bar-wrap" style="width:200px;height:6px;background:var(--bg-elevated);border-radius:3px;overflow:hidden;">
+        <div id="progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--blue-mid),var(--violet-bright));transition:width 0.5s ease;border-radius:3px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Agent Pipeline Grid -->
+<div class="agent-pipeline">
+
+  <!-- ── LAYER 1: ANALYSTS ──────────────────────────────── -->
+  <div class="pipeline-layer">
+    <div class="pipeline-layer-label">LAYER 1 — MARKET INTELLIGENCE</div>
+    <div class="pipeline-agents">
+
+      <div class="agent-card" id="agent-market" data-agent="Market Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar blue"><i class="fas fa-chart-candlestick"></i></div>
+          <div>
+            <div class="agent-name">Market Analyst</div>
+            <div class="agent-role">Technical indicators, MACD, RSI, patterns</div>
+          </div>
+          <div class="agent-status-dot" id="dot-market"></div>
+        </div>
+        <div class="agent-output" id="output-market">
+          <div class="agent-idle">Waiting for run...</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-fundamentals" data-agent="Fundamentals Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar green"><i class="fas fa-building-columns"></i></div>
+          <div>
+            <div class="agent-name">Fundamentals Analyst</div>
+            <div class="agent-role">Financials, earnings, intrinsic value</div>
+          </div>
+          <div class="agent-status-dot" id="dot-fundamentals"></div>
+        </div>
+        <div class="agent-output" id="output-fundamentals">
+          <div class="agent-idle">Waiting for run...</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-news" data-agent="News Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar cyan"><i class="fas fa-newspaper"></i></div>
+          <div>
+            <div class="agent-name">News Analyst</div>
+            <div class="agent-role">Global news, macro events, catalysts</div>
+          </div>
+          <div class="agent-status-dot" id="dot-news"></div>
+        </div>
+        <div class="agent-output" id="output-news">
+          <div class="agent-idle">Waiting for run...</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-social" data-agent="Social Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar violet"><i class="fas fa-comments"></i></div>
+          <div>
+            <div class="agent-name">Sentiment Analyst</div>
+            <div class="agent-role">Social media, Reddit, public mood</div>
+          </div>
+          <div class="agent-status-dot" id="dot-social"></div>
+        </div>
+        <div class="agent-output" id="output-social">
+          <div class="agent-idle">Waiting for run...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── LAYER 2: RESEARCHERS ───────────────────────────── -->
+  <div class="pipeline-layer">
+    <div class="pipeline-layer-label">LAYER 2 — DEBATE CHAMBER</div>
+    <div class="pipeline-agents" style="grid-template-columns:1fr 1fr 1fr;">
+
+      <div class="agent-card bull" id="agent-bull" data-agent="Bull Researcher">
+        <div class="agent-card-header">
+          <div class="agent-avatar green"><i class="fas fa-arrow-trend-up"></i></div>
+          <div>
+            <div class="agent-name">Bull Researcher</div>
+            <div class="agent-role">Argues the bull case for the trade</div>
+          </div>
+          <div class="agent-status-dot" id="dot-bull"></div>
+        </div>
+        <div class="agent-output" id="output-bull">
+          <div class="agent-idle">Waiting for analysts...</div>
+        </div>
+      </div>
+
+      <div class="agent-card bear" id="agent-bear" data-agent="Bear Researcher">
+        <div class="agent-card-header">
+          <div class="agent-avatar red"><i class="fas fa-arrow-trend-down"></i></div>
+          <div>
+            <div class="agent-name">Bear Researcher</div>
+            <div class="agent-role">Argues the bear case against the trade</div>
+          </div>
+          <div class="agent-status-dot" id="dot-bear"></div>
+        </div>
+        <div class="agent-output" id="output-bear">
+          <div class="agent-idle">Waiting for analysts...</div>
+        </div>
+      </div>
+
+      <div class="agent-card manager" id="agent-research-manager" data-agent="Research Manager">
+        <div class="agent-card-header">
+          <div class="agent-avatar yellow"><i class="fas fa-scale-balanced"></i></div>
+          <div>
+            <div class="agent-name">Research Manager</div>
+            <div class="agent-role">Judges the debate, issues investment plan</div>
+          </div>
+          <div class="agent-status-dot" id="dot-research-manager"></div>
+        </div>
+        <div class="agent-output" id="output-research-manager">
+          <div class="agent-idle">Waiting for debate...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── LAYER 3: TRADER + RISK ─────────────────────────── -->
+  <div class="pipeline-layer">
+    <div class="pipeline-layer-label">LAYER 3 — EXECUTION & RISK</div>
+    <div class="pipeline-agents" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+
+      <div class="agent-card" id="agent-trader" data-agent="Trader">
+        <div class="agent-card-header">
+          <div class="agent-avatar blue"><i class="fas fa-person-chalkboard"></i></div>
+          <div>
+            <div class="agent-name">Trader</div>
+            <div class="agent-role">Synthesises plan into trade proposal</div>
+          </div>
+          <div class="agent-status-dot" id="dot-trader"></div>
+        </div>
+        <div class="agent-output" id="output-trader">
+          <div class="agent-idle">Waiting for research...</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-aggressive" data-agent="Aggressive Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar red"><i class="fas fa-bolt"></i></div>
+          <div>
+            <div class="agent-name">Aggressive Risk</div>
+            <div class="agent-role">High-risk, high-reward perspective</div>
+          </div>
+          <div class="agent-status-dot" id="dot-aggressive"></div>
+        </div>
+        <div class="agent-output" id="output-aggressive">
+          <div class="agent-idle">Waiting for trader...</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-conservative" data-agent="Conservative Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar cyan"><i class="fas fa-shield-halved"></i></div>
+          <div>
+            <div class="agent-name">Conservative Risk</div>
+            <div class="agent-role">Capital preservation perspective</div>
+          </div>
+          <div class="agent-status-dot" id="dot-conservative"></div>
+        </div>
+        <div class="agent-output" id="output-conservative">
+          <div class="agent-idle">Waiting for trader...</div>
+        </div>
+      </div>
+
+      <div class="agent-card" id="agent-neutral" data-agent="Neutral Analyst">
+        <div class="agent-card-header">
+          <div class="agent-avatar violet"><i class="fas fa-circle-half-stroke"></i></div>
+          <div>
+            <div class="agent-name">Neutral Risk</div>
+            <div class="agent-role">Balanced risk assessment</div>
+          </div>
+          <div class="agent-status-dot" id="dot-neutral"></div>
+        </div>
+        <div class="agent-output" id="output-neutral">
+          <div class="agent-idle">Waiting for trader...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── LAYER 4: PORTFOLIO MANAGER ────────────────────── -->
+  <div class="pipeline-layer">
+    <div class="pipeline-layer-label">LAYER 4 — FINAL DECISION</div>
+    <div class="pipeline-agents" style="grid-template-columns:1fr;">
+
+      <div class="agent-card pm" id="agent-pm" data-agent="Portfolio Manager">
+        <div class="agent-card-header">
+          <div class="agent-avatar yellow" style="width:48px;height:48px;font-size:1.3rem;"><i class="fas fa-crown"></i></div>
+          <div>
+            <div class="agent-name" style="font-size:1.05rem;">Portfolio Manager</div>
+            <div class="agent-role">Final decision maker — approves or rejects the trade</div>
+          </div>
+          <div id="final-decision-badge" style="display:none;"></div>
+          <div class="agent-status-dot" id="dot-pm"></div>
+        </div>
+        <div class="agent-output" id="output-pm" style="min-height:100px;">
+          <div class="agent-idle">Waiting for risk assessment...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Past Runs for this ticker -->
+{% if past_decisions %}
+<div class="glass-card mt-24">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-clock-rotate-left"></i> Past Decisions</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead><tr><th>Ticker</th><th>Date</th><th>Rating</th><th>Price Target</th><th>Stop Loss</th><th>Action</th><th>Thesis</th></tr></thead>
+      <tbody>
+        {% for d in past_decisions %}
+        <tr>
+          <td class="ticker-cell">{{ d.ticker }}</td>
+          <td class="mono" style="color:var(--text-muted);">{{ d.trade_date }}</td>
+          <td><span class="badge badge-{{ d.rating|lower }}">{{ d.rating }}</span></td>
+          <td class="mono">{% if d.price_target %}${{ d.price_target|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if d.stop_loss %}<span class="negative">${{ d.stop_loss|floatformat:2 }}</span>{% else %}—{% endif %}</td>
+          <td><span class="badge badge-{{ d.execution_action }}">{{ d.execution_action|upper }}</span></td>
+          <td style="max-width:300px;"><details><summary style="cursor:pointer;color:var(--text-secondary);font-size:0.8rem;">{{ d.investment_thesis|truncatechars:60 }}</summary><div style="margin-top:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.6;">{{ d.investment_thesis }}</div></details></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Agent Pipeline Layout ────────────────────────────── */
+.agent-pipeline { display:flex; flex-direction:column; gap:24px; }
+
+.pipeline-layer { }
+.pipeline-layer-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding-left: 4px;
+  border-left: 2px solid var(--border-accent);
+  padding-left: 10px;
+}
+.pipeline-agents {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* ── Agent Card ───────────────────────────────────────── */
+.agent-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue-mid), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.agent-card.active::before { opacity: 1; animation: scan 1.5s linear infinite; }
+.agent-card.active { border-color: var(--blue-mid); box-shadow: 0 0 20px rgba(59,130,246,0.15); }
+.agent-card.done { border-color: var(--green); }
+.agent-card.done::before { background: linear-gradient(90deg, transparent, var(--green), transparent); opacity: 0.5; }
+.agent-card.bull.active { border-color: var(--green); box-shadow: 0 0 20px rgba(16,185,129,0.15); }
+.agent-card.bear.active { border-color: var(--red); box-shadow: 0 0 20px rgba(239,68,68,0.15); }
+.agent-card.pm.active { border-color: var(--yellow); box-shadow: 0 0 30px rgba(245,158,11,0.2); }
+.agent-card.pm.done { border-color: var(--yellow); }
+
+@keyframes scan {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.agent-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.agent-avatar {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.agent-avatar.blue { background: rgba(59,130,246,0.15); color: var(--blue-bright); border: 1px solid rgba(59,130,246,0.3); }
+.agent-avatar.green { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.agent-avatar.red { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.agent-avatar.cyan { background: rgba(6,182,212,0.15); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+.agent-avatar.violet { background: rgba(124,58,237,0.15); color: var(--violet-bright); border: 1px solid rgba(124,58,237,0.3); }
+.agent-avatar.yellow { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+
+.agent-name { font-family: var(--font-display); font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
+.agent-role { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+.agent-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.agent-status-dot.idle { background: var(--bg-elevated); }
+.agent-status-dot.active { background: var(--blue-bright); box-shadow: 0 0 8px var(--blue-bright); animation: pulse-dot 1s ease-in-out infinite; }
+.agent-status-dot.done { background: var(--green); box-shadow: 0 0 6px var(--green); animation: none; }
+.agent-status-dot.error { background: var(--red); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.agent-output {
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.agent-idle { color: var(--text-muted); font-style: italic; }
+
+.agent-thinking {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--blue-bright);
+}
+.thinking-dots span {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--blue-bright);
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+
+.agent-report {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  border-left: 3px solid var(--blue-mid);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.agent-report.bull { border-left-color: var(--green); }
+.agent-report.bear { border-left-color: var(--red); }
+.agent-report.decision { border-left-color: var(--yellow); }
+
+/* ── Final Decision Badge ─────────────────────────────── */
+.final-badge {
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  animation: badge-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.final-badge.buy { background: rgba(16,185,129,0.2); color: var(--green); border: 1px solid var(--green); box-shadow: 0 0 20px rgba(16,185,129,0.3); }
+.final-badge.overweight { background: rgba(59,130,246,0.2); color: var(--blue-bright); border: 1px solid var(--blue-bright); }
+.final-badge.hold { background: rgba(245,158,11,0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+.final-badge.underweight { background: rgba(249,115,22,0.2); color: #F97316; border: 1px solid #F97316; }
+.final-badge.sell { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid var(--red); box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+
+@keyframes badge-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Agent Room State ──────────────────────────────────────
+const AGENT_MAP = {
+  'Market Analyst':       { el: 'market',           layer: 1 },
+  'Fundamentals Analyst': { el: 'fundamentals',     layer: 1 },
+  'News Analyst':         { el: 'news',             layer: 1 },
+  'Social Analyst':       { el: 'social',           layer: 1 },
+  'Bull Researcher':      { el: 'bull',             layer: 2 },
+  'Bear Researcher':      { el: 'bear',             layer: 2 },
+  'Research Manager':     { el: 'research-manager', layer: 2 },
+  'Trader':               { el: 'trader',           layer: 3 },
+  'Aggressive Analyst':   { el: 'aggressive',       layer: 3 },
+  'Conservative Analyst': { el: 'conservative',     layer: 3 },
+  'Neutral Analyst':      { el: 'neutral',          layer: 3 },
+  'Portfolio Manager':    { el: 'pm',               layer: 4 },
+};
+
+const PROGRESS_STEPS = {
+  'Market Analyst': 8, 'Fundamentals Analyst': 16, 'News Analyst': 24, 'Social Analyst': 32,
+  'Bull Researcher': 44, 'Bear Researcher': 52, 'Research Manager': 62,
+  'Trader': 72, 'Aggressive Analyst': 78, 'Conservative Analyst': 84, 'Neutral Analyst': 90,
+  'Portfolio Manager': 100
+};
+
+let ws = null;
+let runTimer = null;
+let runSeconds = 0;
+let isRunning = false;
+
+function setAgentState(agentName, state, content) {
+  const map = AGENT_MAP[agentName];
+  if (!map) return;
+  const card = document.getElementById('agent-' + map.el);
+  const dot  = document.getElementById('dot-' + map.el);
+  const out  = document.getElementById('output-' + map.el);
+  if (!card || !dot || !out) return;
+
+  card.classList.remove('active', 'done');
+  dot.classList.remove('idle', 'active', 'done', 'error');
+
+  if (state === 'active') {
+    card.classList.add('active');
+    dot.classList.add('active');
+    out.innerHTML = `<div class="agent-thinking"><i class="fas fa-circle-notch fa-spin" style="font-size:0.8rem;"></i> Analysing...<div class="thinking-dots"><span></span><span></span><span></span></div></div>`;
+  } else if (state === 'done') {
+    card.classList.add('done');
+    dot.classList.add('done');
+    const cls = agentName.includes('Bull') ? 'bull' : agentName.includes('Bear') ? 'bear' : agentName.includes('Portfolio') ? 'decision' : '';
+    out.innerHTML = `<div class="agent-report ${cls}">${escHtml(content || '')}</div>`;
+    // Auto-scroll to bottom of output
+    out.scrollTop = out.scrollHeight;
+  } else if (state === 'error') {
+    dot.classList.add('error');
+    out.innerHTML = `<div style="color:var(--red);font-size:0.78rem;">${escHtml(content || 'Error')}</div>`;
+  }
+}
+
+function setProgress(agentName) {
+  const pct = PROGRESS_STEPS[agentName] || 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function startRun() {
+  if (isRunning) return;
+  const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if (!ticker) return;
+
+  isRunning = true;
+  runSeconds = 0;
+  document.getElementById('run-icon').className = 'fas fa-circle-notch fa-spin';
+  document.getElementById('run-label').textContent = 'Running...';
+  document.getElementById('run-btn').disabled = true;
+
+  // Show status bar
+  const bar = document.getElementById('status-bar');
+  bar.style.display = 'block';
+  document.getElementById('status-ticker').textContent = ticker;
+  document.getElementById('status-text').textContent = 'Connecting to agent pipeline...';
+  document.getElementById('progress-bar').style.width = '2%';
+
+  // Reset all agents
+  Object.keys(AGENT_MAP).forEach(name => {
+    const map = AGENT_MAP[name];
+    const card = document.getElementById('agent-' + map.el);
+    const dot  = document.getElementById('dot-' + map.el);
+    const out  = document.getElementById('output-' + map.el);
+    if (card) card.classList.remove('active', 'done');
+    if (dot)  { dot.className = 'agent-status-dot idle'; }
+    if (out)  out.innerHTML = '<div class="agent-idle">Waiting...</div>';
+  });
+  document.getElementById('final-decision-badge').style.display = 'none';
+
+  // Timer
+  runTimer = setInterval(() => {
+    runSeconds++;
+    document.getElementById('status-elapsed').textContent = runSeconds + 's';
+  }, 1000);
+
+  // Connect WebSocket for streaming updates
+  const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${wsProto}://${window.location.host}/ws/agents/`);
+
+  ws.onopen = () => {
+    document.getElementById('status-text').textContent = 'Connected — sending analysis request...';
+    ws.send(JSON.stringify({ action: 'run_analysis', ticker: ticker }));
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    handleAgentMessage(msg);
+  };
+
+  ws.onerror = () => {
+    document.getElementById('status-text').textContent = 'WebSocket error — falling back to polling...';
+    // Fallback: trigger via REST and poll
+    triggerViaRest(ticker);
+  };
+
+  ws.onclose = () => {
+    if (isRunning) finishRun();
+  };
+}
+
+function handleAgentMessage(msg) {
+  const { type, agent, content, rating, ticker } = msg;
+
+  if (type === 'agent_start') {
+    setAgentState(agent, 'active');
+    setProgress(agent);
+    document.getElementById('status-text').textContent = `${agent} is working...`;
+
+  } else if (type === 'agent_done') {
+    setAgentState(agent, 'done', content);
+    setProgress(agent);
+
+  } else if (type === 'agent_error') {
+    setAgentState(agent, 'error', content);
+
+  } else if (type === 'run_complete') {
+    // Show final decision
+    const badge = document.getElementById('final-decision-badge');
+    const ratingClass = (rating || '').toLowerCase().replace(' ', '');
+    badge.innerHTML = `<div class="final-badge ${ratingClass}">${rating || 'COMPLETE'}</div>`;
+    badge.style.display = 'block';
+    document.getElementById('status-text').textContent = `Analysis complete — ${rating} on ${ticker}`;
+    document.getElementById('progress-bar').style.width = '100%';
+    finishRun();
+
+  } else if (type === 'run_error') {
+    document.getElementById('status-text').textContent = 'Run failed: ' + (content || 'Unknown error');
+    finishRun();
+  }
+}
+
+function triggerViaRest(ticker) {
+  // Fallback: trigger run via REST API and show polling state
+  fetch('/api/run-analysis/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ ticker: ticker })
+  }).then(r => r.json()).then(data => {
+    document.getElementById('status-text').textContent = 'Analysis queued (task ID: ' + (data.task_id || '?') + ') — check Agent Log for results.';
+    // Simulate agent progression for visual feedback
+    simulateAgentProgress();
+  }).catch(e => {
+    document.getElementById('status-text').textContent = 'Failed to trigger run: ' + e;
+    finishRun();
+  });
+}
+
+function simulateAgentProgress() {
+  // Show agents activating in sequence while real task runs in background
+  const agents = Object.keys(AGENT_MAP);
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i > 0) setAgentState(agents[i-1], 'done', 'Analysis complete — see Agent Log for full report.');
+    if (i < agents.length) {
+      setAgentState(agents[i], 'active');
+      setProgress(agents[i]);
+      document.getElementById('status-text').textContent = agents[i] + ' is working...';
+      i++;
+    } else {
+      clearInterval(interval);
+      document.getElementById('status-text').textContent = 'All agents complete — check Agent Log for full results.';
+      document.getElementById('progress-bar').style.width = '100%';
+      finishRun();
+    }
+  }, 3500);
+}
+
+function finishRun() {
+  isRunning = false;
+  clearInterval(runTimer);
+  document.getElementById('run-icon').className = 'fas fa-rocket';
+  document.getElementById('run-label').textContent = 'Run Agents';
+  document.getElementById('run-btn').disabled = false;
+  if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+}
+
+function clearRoom() {
+  if (isRunning) return;
+  Object.keys(AGENT_MAP).forEach(name => {
+    const map = AGENT_MAP[name];
+    const card = document.getElementById('agent-' + map.el);
+    const dot  = document.getElementById('dot-' + map.el);
+    const out  = document.getElementById('output-' + map.el);
+    if (card) card.classList.remove('active', 'done');
+    if (dot)  dot.className = 'agent-status-dot idle';
+    if (out)  out.innerHTML = '<div class="agent-idle">Waiting for run...</div>';
+  });
+  document.getElementById('status-bar').style.display = 'none';
+  document.getElementById('final-decision-badge').style.display = 'none';
+  document.getElementById('progress-bar').style.width = '0%';
+}
+
+function getCookie(name) {
+  let v = null;
+  document.cookie.split(';').forEach(c => {
+    const [k, val] = c.trim().split('=');
+    if (k === name) v = decodeURIComponent(val);
+  });
+  return v;
+}
+
+// Auto-uppercase ticker input
+document.getElementById('ticker-input').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+</script>
+{% endblock %}

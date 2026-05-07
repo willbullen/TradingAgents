@@ -55,6 +55,12 @@
 
       <div class="nav-section-label">Intelligence</div>
 
+      <a href="{% url 'agent_room' %}" class="nav-link {% if page == 'agent_room' %}active{% endif %}" style="position:relative;">
+        <i class="fas fa-users"></i>
+        <span>Agent Room</span>
+        <span style="font-size:0.6rem;background:linear-gradient(90deg,var(--blue-mid),var(--violet-bright));color:#fff;padding:2px 6px;border-radius:8px;margin-left:auto;">LIVE</span>
+      </a>
+
       <a href="{% url 'agent_log' %}" class="nav-link {% if page == 'agent_log' %}active{% endif %}">
         <i class="fas fa-brain"></i>
         <span>Agent Log</span>

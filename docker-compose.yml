@@ -1,4 +1,142 @@
+version: '3.9'
+# =============================================================================
+# TradingAgents — Full Stack
+#
+# Profiles:
+#   (default)  Dashboard + autonomous system (web, celery, db, redis)
+#   ollama     Local LLM support via Ollama
+#   cli        Original CLI-only TradingAgents container
+#
+# Services:
+#   web            Django/Daphne ASGI dashboard (HTTP + WebSockets)
+#   celery_worker  Background task processor (runs TradingAgents analysis)
+#   celery_beat    Scheduled task trigger (django_celery_beat)
+#   db             PostgreSQL database
+#   redis          Broker for Celery + WebSocket channel layer
+#   portainer      Docker management UI
+#   tradingagents  Original CLI container (profile: cli)
+#   ollama         Local LLM (profile: ollama)
+# =============================================================================
+
 services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tradingagents}
+      POSTGRES_USER: ${DB_USER:-tradingagents}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tradingagents}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Django / Daphne ASGI Dashboard ─────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    entrypoint: /app/entrypoint.sh
+    command: daphne -b 0.0.0.0 -p 8000 core.asgi:application
+    env_file: .env
+    ports:
+      - "${WEB_PORT:-8080}:8000"
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+      - trading_memory:/root/.tradingagents
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Celery Worker ───────────────────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    command: celery -A core worker -l info --concurrency=2
+    env_file: .env
+    volumes:
+      - media_data:/app/media
+      - trading_memory:/root/.tradingagents
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Beat (Scheduler) ─────────────────────────────────────────────────
+  celery_beat:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    command: >
+      celery -A core beat -l info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      --pidfile=/tmp/celerybeat.pid
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Portainer ───────────────────────────────────────────────────────────────
+  portainer:
+    image: portainer/portainer-ce:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    expose:
+      - "9000"
+    restart: unless-stopped
+
+  # ── Cloudflare Tunnel (optional) ────────────────────────────────────────────
+  # Uncomment and set CLOUDFLARE_TUNNEL_TOKEN in .env to enable
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   command: tunnel --no-autoupdate run
+  #   environment:
+  #     - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+  #   depends_on:
+  #     - web
+  #   restart: unless-stopped
+
+  # ── Original CLI TradingAgents (profile: cli) ───────────────────────────────
   tradingagents:
     build: .
     env_file:
@@ -7,7 +145,10 @@ services:
       - tradingagents_data:/home/appuser/.tradingagents
     tty: true
     stdin_open: true
+    profiles:
+      - cli
 
+  # ── Ollama Local LLM (profile: ollama) ─────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
     volumes:
@@ -31,5 +172,11 @@ services:
       - ollama
 
 volumes:
+  postgres_data:
+  redis_data:
+  static_data:
+  media_data:
+  portainer_data:
+  trading_memory:
   tradingagents_data:
   ollama_data:

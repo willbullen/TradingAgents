@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}TradingAgents Dashboard{% endblock %}</title>
+  {% load static %}
+  <!-- Obsidian Glass CSS -->
+  <link rel="stylesheet" href="{% static 'css/obsidian.css' %}">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">🤖</div>
+      <div>
+        <div class="sidebar-title">TradingAgents</div>
+        <div class="sidebar-subtitle">Autonomous System</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Dashboard</div>
+
+      <a href="{% url 'overview' %}" class="nav-link {% if page == 'overview' %}active{% endif %}">
+        <i class="fas fa-chart-pie"></i>
+        <span>Overview</span>
+      </a>
+
+      <a href="{% url 'positions' %}" class="nav-link {% if page == 'positions' %}active{% endif %}">
+        <i class="fas fa-layer-group"></i>
+        <span>Positions</span>
+        {% if position_count %}<span class="nav-badge">{{ position_count }}</span>{% endif %}
+      </a>
+
+      <div class="nav-section-label">Strategies</div>
+
+      <a href="{% url 'capitol_trades' %}" class="nav-link {% if page == 'capitol_trades' %}active{% endif %}">
+        <i class="fas fa-landmark"></i>
+        <span>Capitol Trades</span>
+      </a>
+
+      <a href="{% url 'wheel_strategy' %}" class="nav-link {% if page == 'wheel' %}active{% endif %}">
+        <i class="fas fa-circle-notch"></i>
+        <span>Wheel Strategy</span>
+      </a>
+
+      <div class="nav-section-label">Intelligence</div>
+
+      <a href="{% url 'agent_log' %}" class="nav-link {% if page == 'agent_log' %}active{% endif %}">
+        <i class="fas fa-brain"></i>
+        <span>Agent Log</span>
+      </a>
+
+      <div class="nav-section-label">System</div>
+
+      <a href="{% url 'settings' %}" class="nav-link {% if page == 'settings' %}active{% endif %}">
+        <i class="fas fa-sliders"></i>
+        <span>Settings</span>
+      </a>
+
+      <a href="/admin/" class="nav-link" target="_blank">
+        <i class="fas fa-shield-halved"></i>
+        <span>Admin</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-indicator" id="ws-status">
+        <div class="status-dot" id="ws-dot"></div>
+        <div>
+          <div class="status-text" id="ws-text">Connecting...</div>
+          <div class="status-text" style="color:var(--text-muted);font-size:0.6rem;" id="ws-mode">
+            {% if alpaca_paper %}Paper Trading{% else %}Live Trading{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ──────────────────────────────────────── -->
+  <div class="main-content">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="btn btn-ghost btn-sm" id="sidebar-toggle" style="display:none;">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <div class="header-title">{% block page_title %}Dashboard{% endblock %}</div>
+          <div class="header-breadcrumb">TradingAgents / {% block breadcrumb %}Overview{% endblock %}</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="live-badge" id="live-badge">
+          <span class="live-dot"></span>
+          LIVE
+        </span>
+        <button class="btn btn-ghost btn-sm" id="run-btn" onclick="triggerRun()">
+          <i class="fas fa-play"></i> Run Analysis
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="triggerSync()">
+          <i class="fas fa-rotate"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="page-content fade-in">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">
+            <i class="fas fa-circle-info"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+</div>
+
+<!-- ── Run Modal ─────────────────────────────────────────── -->
+<div id="run-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;">
+  <div class="glass-card" style="width:420px;border:1px solid var(--border-accent);">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-robot"></i> Trigger Analysis Run</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="glass-card-body">
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.8rem;color:var(--text-secondary);display:block;margin-bottom:6px;">Mode</label>
+        <select id="run-mode" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:var(--radius-sm);font-size:0.875rem;">
+          <option value="full">Full (Analyse + Execute)</option>
+          <option value="analyse">Analyse Only</option>
+          <option value="stops">Update Stops Only</option>
+          <option value="wheel">Wheel Cycle Only</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.8rem;color:var(--text-secondary);display:block;margin-bottom:6px;">Tickers (optional, comma-separated)</label>
+        <input id="run-tickers" type="text" placeholder="e.g. NVDA, MSFT, AAPL" style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:var(--radius-sm);font-size:0.875rem;">
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--text-secondary);margin-bottom:20px;cursor:pointer;">
+        <input type="checkbox" id="dry-run" checked style="accent-color:var(--blue);">
+        Dry run (no real orders)
+      </label>
+      <button class="btn btn-primary w-full" onclick="submitRun()">
+        <i class="fas fa-rocket"></i> Launch Run
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast Notification ─────────────────────────────────── -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;z-index:300;display:none;max-width:320px;">
+  <div class="glass-card" style="border:1px solid var(--border-accent);padding:14px 18px;display:flex;align-items:center;gap:10px;">
+    <i id="toast-icon" class="fas fa-circle-info" style="color:var(--blue-bright);"></i>
+    <span id="toast-msg" style="font-size:0.875rem;color:var(--text-primary);"></span>
+  </div>
+</div>
+
+<!-- ── JavaScript ─────────────────────────────────────────── -->
+<script>
+  // ── WebSocket connection ──────────────────────────────────
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}/ws/trading/`;
+  let ws;
+
+  function connectWS() {
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      document.getElementById('ws-dot').className = 'status-dot';
+      document.getElementById('ws-text').textContent = 'Connected';
+    };
+    ws.onclose = () => {
+      document.getElementById('ws-dot').className = 'status-dot offline';
+      document.getElementById('ws-text').textContent = 'Disconnected';
+      setTimeout(connectWS, 5000);
+    };
+    ws.onerror = () => {
+      document.getElementById('ws-dot').className = 'status-dot offline';
+    };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      handleWSEvent(msg.event, msg.data);
+    };
+  }
+
+  function handleWSEvent(event, data) {
+    if (event === 'run_started')   showToast('🚀 Analysis run started', 'info');
+    if (event === 'run_complete')  showToast(`✅ Run complete — ${data.decisions} decisions`, 'success');
+    if (event === 'run_error')     showToast(`❌ Run error: ${data.error}`, 'error');
+    if (event === 'positions_updated') {
+      // Refresh positions table if on positions page
+      if (window.refreshPositions) window.refreshPositions();
+    }
+    if (event === 'decision_made') showToast(`📊 ${data.ticker}: ${data.rating}`, 'info');
+  }
+
+  connectWS();
+
+  // ── Toast ─────────────────────────────────────────────────
+  function showToast(msg, type = 'info') {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    const msgEl = document.getElementById('toast-msg');
+    const iconMap = { info: 'fa-circle-info', success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
+    const colorMap = { info: 'var(--blue-bright)', success: 'var(--green)', error: 'var(--red)', warning: 'var(--yellow)' };
+    icon.className = `fas ${iconMap[type] || 'fa-circle-info'}`;
+    icon.style.color = colorMap[type] || 'var(--blue-bright)';
+    msgEl.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+  }
+
+  // ── Run modal ─────────────────────────────────────────────
+  function triggerRun() {
+    document.getElementById('run-modal').style.display = 'flex';
+  }
+  function closeModal() {
+    document.getElementById('run-modal').style.display = 'none';
+  }
+  function submitRun() {
+    const mode = document.getElementById('run-mode').value;
+    const tickersRaw = document.getElementById('run-tickers').value;
+    const dryRun = document.getElementById('dry-run').checked;
+    const tickers = tickersRaw ? tickersRaw.split(',').map(t => t.trim().toUpperCase()).filter(Boolean) : null;
+    fetch('/api/trigger-run/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify({ mode, dry_run: dryRun, tickers }),
+    }).then(r => r.json()).then(d => {
+      closeModal();
+      showToast(`Run queued (task: ${d.task_id?.slice(0,8)}...)`, 'success');
+    }).catch(() => showToast('Failed to queue run', 'error'));
+  }
+
+  // ── Sync ──────────────────────────────────────────────────
+  function triggerSync() {
+    fetch('/api/trigger-sync/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    }).then(() => showToast('Position sync queued', 'info'));
+  }
+
+  // ── CSRF helper ───────────────────────────────────────────
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : null;
+  }
+
+  // ── Mobile sidebar ────────────────────────────────────────
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  if (window.innerWidth <= 768) sidebarToggle.style.display = 'flex';
+  sidebarToggle.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

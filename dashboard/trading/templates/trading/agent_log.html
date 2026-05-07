@@ -1,0 +1,131 @@
+{% extends "trading/base.html" %}
+{% block title %}Agent Log — TradingAgents{% endblock %}
+{% block page_title %}Agent Log{% endblock %}
+{% block breadcrumb %}Intelligence / Agent Log{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+  <div>
+    <h1 class="page-title text-gradient">Agent Decision Log</h1>
+    <p class="page-subtitle">Full TradingAgents multi-agent analysis history</p>
+  </div>
+  <button class="btn btn-primary" onclick="triggerRun()">
+    <i class="fas fa-rocket"></i> New Run
+  </button>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon blue"><i class="fas fa-list-check"></i></div>
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-label">Total Decisions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-arrow-trend-up"></i></div>
+    <div class="stat-value">{{ buy_count }}</div>
+    <div class="stat-label">Buy / Overweight</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon yellow"><i class="fas fa-minus"></i></div>
+    <div class="stat-value">{{ hold_count }}</div>
+    <div class="stat-label">Hold</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red"><i class="fas fa-arrow-trend-down"></i></div>
+    <div class="stat-value">{{ sell_count }}</div>
+    <div class="stat-label">Sell / Underweight</div>
+  </div>
+</div>
+
+<!-- Recent Runs -->
+<div class="glass-card mb-24">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-clock-rotate-left"></i> Orchestrator Runs</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Started</th>
+          <th>Mode</th>
+          <th>Status</th>
+          <th>Tickers</th>
+          <th>Decisions</th>
+          <th>Orders</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in runs %}
+        <tr>
+          <td class="mono" style="color:var(--text-secondary);">{{ run.started_at|date:"M d, H:i" }}</td>
+          <td><span class="badge badge-running">{{ run.mode|upper }}</span></td>
+          <td><span class="badge badge-{{ run.status }}">{{ run.status|upper }}</span></td>
+          <td class="mono" style="color:var(--text-muted);">{{ run.tickers_analysed|join:", "|truncatechars:40 }}</td>
+          <td class="mono text-center">{{ run.decisions_made }}</td>
+          <td class="mono text-center">{{ run.orders_placed }}</td>
+          <td class="mono" style="color:var(--text-muted);">
+            {% if run.duration_seconds %}{{ run.duration_seconds|floatformat:0 }}s{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center" style="padding:24px;color:var(--text-muted);">No runs yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Decision Log -->
+<div class="glass-card">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-brain"></i> All Decisions</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Date</th>
+          <th>Rating</th>
+          <th>Price Target</th>
+          <th>Stop Loss</th>
+          <th>Horizon</th>
+          <th>Action</th>
+          <th>Order ID</th>
+          <th>Investment Thesis</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in decisions %}
+        <tr>
+          <td class="ticker-cell">{{ d.ticker }}</td>
+          <td class="mono" style="color:var(--text-muted);">{{ d.trade_date }}</td>
+          <td><span class="badge badge-{{ d.rating|lower }}">{{ d.rating }}</span></td>
+          <td class="mono">{% if d.price_target %}${{ d.price_target|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if d.stop_loss %}<span class="negative">${{ d.stop_loss|floatformat:2 }}</span>{% else %}—{% endif %}</td>
+          <td style="color:var(--text-muted);font-size:0.8rem;">{{ d.time_horizon|default:"—" }}</td>
+          <td><span class="badge badge-{{ d.execution_action }}">{{ d.execution_action|upper }}</span></td>
+          <td class="mono" style="color:var(--text-muted);font-size:0.72rem;">{{ d.order_id|truncatechars:12|default:"—" }}</td>
+          <td style="max-width:300px;">
+            <details>
+              <summary style="cursor:pointer;color:var(--text-secondary);font-size:0.8rem;">{{ d.investment_thesis|truncatechars:60 }}</summary>
+              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;">{{ d.investment_thesis }}</div>
+            </details>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center" style="padding:48px;color:var(--text-muted);">
+            <i class="fas fa-robot" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.2;"></i>
+            No decisions logged yet.<br>
+            <span style="font-size:0.8rem;">Trigger an analysis run to populate this log.</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

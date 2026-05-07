@@ -1,0 +1,192 @@
+{% extends "trading/base.html" %}
+{% block title %}Wheel Strategy — TradingAgents{% endblock %}
+{% block page_title %}Wheel Strategy{% endblock %}
+{% block breadcrumb %}Strategies / Wheel{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+  <div>
+    <h1 class="page-title text-gradient">Wheel Strategy</h1>
+    <p class="page-subtitle">Automated cash-secured puts and covered calls — collect premium passively</p>
+  </div>
+  <button class="btn btn-primary" onclick="triggerRun()">
+    <i class="fas fa-circle-notch fa-spin" id="wheel-spin" style="display:none;"></i>
+    <i class="fas fa-rotate" id="wheel-icon"></i> Run Wheel Cycle
+  </button>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card gradient-border">
+    <div class="stat-icon green"><i class="fas fa-coins"></i></div>
+    <div class="stat-value positive">${{ total_premium|floatformat:2 }}</div>
+    <div class="stat-label">Total Premium Collected</div>
+    <div class="stat-change positive"><i class="fas fa-arrow-up"></i> All time</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon violet"><i class="fas fa-arrow-down-to-bracket"></i></div>
+    <div class="stat-value">{{ open_puts }}</div>
+    <div class="stat-label">Open Cash-Secured Puts</div>
+    <div class="stat-change neutral">Stage 1</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon cyan"><i class="fas fa-arrow-up-from-bracket"></i></div>
+    <div class="stat-value">{{ open_calls }}</div>
+    <div class="stat-label">Open Covered Calls</div>
+    <div class="stat-change neutral">Stage 2</div>
+  </div>
+</div>
+
+<!-- How the Wheel Works -->
+<div class="glass-card mb-24" style="border-color:var(--border-accent);">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-circle-info"></i> How the Wheel Works</span>
+  </div>
+  <div class="glass-card-body">
+    <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:16px;align-items:center;">
+      <div style="text-align:center;padding:16px;background:var(--violet-dim);border-radius:var(--radius);border:1px solid rgba(124,58,237,0.2);">
+        <div style="font-size:1.5rem;margin-bottom:8px;">💰</div>
+        <div style="font-family:var(--font-display);font-weight:600;color:var(--violet-bright);margin-bottom:4px;">Stage 1</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);">Sell Cash-Secured Put<br>Collect premium upfront</div>
+      </div>
+      <div style="color:var(--text-muted);font-size:1.2rem;">→</div>
+      <div style="text-align:center;padding:16px;background:var(--blue-dim);border-radius:var(--radius);border:1px solid rgba(59,130,246,0.2);">
+        <div style="font-size:1.5rem;margin-bottom:8px;">📦</div>
+        <div style="font-family:var(--font-display);font-weight:600;color:var(--blue-bright);margin-bottom:4px;">Assignment</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);">If assigned, buy shares<br>at the strike price</div>
+      </div>
+      <div style="color:var(--text-muted);font-size:1.2rem;">→</div>
+      <div style="text-align:center;padding:16px;background:var(--cyan-dim);border-radius:var(--radius);border:1px solid rgba(6,182,212,0.2);">
+        <div style="font-size:1.5rem;margin-bottom:8px;">📈</div>
+        <div style="font-family:var(--font-display);font-weight:600;color:var(--cyan);margin-bottom:4px;">Stage 2</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);">Sell Covered Call<br>Collect more premium</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Open Contracts -->
+<div class="glass-card mb-24">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-file-contract"></i> Open Contracts</span>
+    <span class="live-badge"><span class="live-dot"></span>ACTIVE</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Stage</th>
+          <th class="text-right">Strike</th>
+          <th>Expiry</th>
+          <th>DTE</th>
+          <th class="text-right">Premium</th>
+          <th class="text-right">Cost Basis</th>
+          <th>AI Rating</th>
+          <th>Opened</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in open_contracts %}
+        <tr>
+          <td class="ticker-cell">{{ c.ticker }}</td>
+          <td><span class="badge badge-{{ c.stage }}">{{ c.get_stage_display }}</span></td>
+          <td class="mono text-right">${{ c.strike|floatformat:2 }}</td>
+          <td class="mono">{{ c.expiry }}</td>
+          <td class="mono text-center">
+            <span style="color:{% if c.days_to_expiry <= 7 %}var(--red){% elif c.days_to_expiry <= 14 %}var(--yellow){% else %}var(--green){% endif %};">
+              {{ c.days_to_expiry }}d
+            </span>
+          </td>
+          <td class="mono text-right positive">${{ c.premium_collected|floatformat:2 }}</td>
+          <td class="mono text-right">{% if c.cost_basis %}${{ c.cost_basis|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td>{% if c.ta_rating %}<span class="badge badge-{{ c.ta_rating|lower }}">{{ c.ta_rating }}</span>{% else %}—{% endif %}</td>
+          <td style="color:var(--text-muted);font-size:0.78rem;">{{ c.opened_at|date:"M d" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center" style="padding:48px;color:var(--text-muted);">
+            <i class="fas fa-circle-notch" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.2;"></i>
+            No open wheel contracts.<br>
+            <span style="font-size:0.8rem;">Run the wheel cycle to open new positions.</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Premium by Ticker -->
+{% if ticker_premiums %}
+<div class="grid-2">
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-chart-bar"></i> Premium by Ticker</span>
+    </div>
+    <div class="glass-card-body" style="height:220px;">
+      <canvas id="premiumChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Closed Contracts -->
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-archive"></i> Recently Closed</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr><th>Ticker</th><th>Stage</th><th>Status</th><th class="text-right">Premium</th><th class="text-right">Cycle P&L</th></tr>
+        </thead>
+        <tbody>
+          {% for c in closed_contracts|slice:":8" %}
+          <tr>
+            <td class="ticker-cell">{{ c.ticker }}</td>
+            <td><span class="badge badge-{{ c.stage }}">{{ c.stage|upper }}</span></td>
+            <td><span class="badge badge-{{ c.status }}">{{ c.get_status_display }}</span></td>
+            <td class="mono text-right positive">${{ c.premium_collected|floatformat:2 }}</td>
+            <td class="mono text-right {% if c.cycle_profit and c.cycle_profit >= 0 %}positive{% elif c.cycle_profit %}negative{% endif %}">
+              {% if c.cycle_profit %}${{ c.cycle_profit|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center" style="padding:24px;color:var(--text-muted);">No closed contracts yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if ticker_premiums %}
+<script>
+const premiumData = {{ ticker_premiums|safe }};
+new Chart(document.getElementById('premiumChart'), {
+  type: 'bar',
+  data: {
+    labels: premiumData.map(d => d.ticker),
+    datasets: [{
+      label: 'Premium ($)',
+      data: premiumData.map(d => d.total),
+      backgroundColor: 'rgba(16,185,129,0.6)',
+      borderColor: '#10B981',
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 10 }, callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

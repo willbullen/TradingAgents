@@ -1,0 +1,159 @@
+{% extends "trading/base.html" %}
+{% block title %}Capitol Trades — TradingAgents{% endblock %}
+{% block page_title %}Capitol Trades{% endblock %}
+{% block breadcrumb %}Strategies / Capitol Trades{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+  <div>
+    <h1 class="page-title text-gradient">Capitol Trades</h1>
+    <p class="page-subtitle">Politician stock disclosures — copy the smart money on Capitol Hill</p>
+  </div>
+  <button class="btn btn-primary" onclick="triggerRun()">
+    <i class="fas fa-robot"></i> Analyse Disclosures
+  </button>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-arrow-trend-up"></i></div>
+    <div class="stat-value">{{ buys }}</div>
+    <div class="stat-label">Purchase Disclosures</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red"><i class="fas fa-arrow-trend-down"></i></div>
+    <div class="stat-value">{{ sells }}</div>
+    <div class="stat-label">Sale Disclosures</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon violet"><i class="fas fa-brain"></i></div>
+    <div class="stat-value">{{ analysed }}</div>
+    <div class="stat-label">AI Analysed</div>
+  </div>
+</div>
+
+<div class="grid-2 mb-24">
+  <!-- Top Politicians -->
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-ranking-star"></i> Most Active Politicians</span>
+    </div>
+    <div class="glass-card-body">
+      {% for pol in top_politicians %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge badge-{% if pol.party == 'D' %}dem{% elif pol.party == 'R' %}rep{% else %}error{% endif %}">
+            {{ pol.party|default:"?" }}
+          </span>
+          <span style="font-size:0.875rem;color:var(--text-primary);">{{ pol.politician }}</span>
+        </div>
+        <span class="mono" style="color:var(--blue-bright);">{{ pol.count }} trades</span>
+      </div>
+      {% empty %}
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">No data yet</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Buy vs Sell Donut -->
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-chart-donut"></i> Buy vs Sell Split</span>
+    </div>
+    <div class="glass-card-body flex-center" style="height:220px;">
+      <canvas id="bsChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Disclosures Table -->
+<div class="glass-card">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-scroll"></i> Recent Disclosures</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Politician</th>
+          <th>Party</th>
+          <th>Ticker</th>
+          <th>Transaction</th>
+          <th>Amount</th>
+          <th>Disclosed</th>
+          <th>AI Rating</th>
+          <th>Analysed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trades %}
+        <tr>
+          <td style="color:var(--text-primary);font-weight:500;">{{ t.politician }}</td>
+          <td>
+            <span class="badge badge-{% if t.party == 'D' %}dem{% elif t.party == 'R' %}rep{% else %}error{% endif %}">
+              {% if t.party == 'D' %}DEM{% elif t.party == 'R' %}REP{% else %}IND{% endif %}
+            </span>
+          </td>
+          <td class="ticker-cell">{{ t.ticker }}</td>
+          <td>
+            <span class="badge {% if 'purchase' in t.transaction_type|lower %}badge-buy-trade{% else %}badge-sell-trade{% endif %}">
+              {{ t.transaction_type }}
+            </span>
+          </td>
+          <td class="mono" style="color:var(--text-secondary);">{{ t.amount|default:"—" }}</td>
+          <td class="mono" style="color:var(--text-muted);">{{ t.disclosure_date }}</td>
+          <td>
+            {% if t.ta_rating %}
+              <span class="badge badge-{{ t.ta_rating|lower }}">{{ t.ta_rating }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);font-size:0.78rem;">Pending</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.analysed %}
+              <i class="fas fa-circle-check" style="color:var(--green);"></i>
+            {% else %}
+              <i class="fas fa-circle-xmark" style="color:var(--text-muted);"></i>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center" style="padding:48px;color:var(--text-muted);">
+            <i class="fas fa-landmark" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.2;"></i>
+            No disclosures fetched yet.<br>
+            <span style="font-size:0.8rem;">Configure your Quiver Quant API key and run the Capitol Trades fetch task.</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+new Chart(document.getElementById('bsChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Purchases', 'Sales'],
+    datasets: [{
+      data: [{{ buys }}, {{ sells }}],
+      backgroundColor: ['rgba(16,185,129,0.7)', 'rgba(239,68,68,0.7)'],
+      borderColor: ['#10B981', '#EF4444'],
+      borderWidth: 1,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 11 } } }
+    },
+    cutout: '65%',
+  }
+});
+</script>
+{% endblock %}

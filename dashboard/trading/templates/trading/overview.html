@@ -1,0 +1,237 @@
+{% extends "trading/base.html" %}
+{% block title %}Overview — TradingAgents{% endblock %}
+{% block page_title %}Overview{% endblock %}
+{% block breadcrumb %}Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="flex-between">
+    <div>
+      <h1 class="page-title text-gradient">Portfolio Overview</h1>
+      <p class="page-subtitle">Real-time autonomous trading system status</p>
+    </div>
+    {% if latest_run %}
+    <div style="text-align:right;">
+      <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);">LAST RUN</div>
+      <div style="font-family:var(--font-mono);font-size:0.85rem;color:var(--text-secondary);">{{ latest_run.started_at|date:"M d, H:i" }}</div>
+      <span class="badge badge-{{ latest_run.status }}">{{ latest_run.status|upper }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Stat Cards ───────────────────────────────────────── -->
+<div class="stats-grid">
+  <div class="stat-card gradient-border">
+    <div class="stat-icon blue"><i class="fas fa-wallet"></i></div>
+    <div class="stat-value">${{ total_value|floatformat:0 }}</div>
+    <div class="stat-label">Portfolio Value</div>
+    <div class="stat-change {% if total_pl >= 0 %}positive{% else %}negative{% endif %}">
+      <i class="fas fa-arrow-{% if total_pl >= 0 %}up{% else %}down{% endif %}"></i>
+      ${{ total_pl|floatformat:2 }} ({{ total_pl_pct }}%)
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="fas fa-layer-group"></i></div>
+    <div class="stat-value">{{ position_count }}</div>
+    <div class="stat-label">Open Positions</div>
+    <div class="stat-change neutral">Across all strategies</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon violet"><i class="fas fa-bullseye"></i></div>
+    <div class="stat-value">{{ win_rate }}%</div>
+    <div class="stat-label">AI Buy Rate</div>
+    <div class="stat-change neutral">Buy / Overweight signals</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon cyan"><i class="fas fa-circle-notch"></i></div>
+    <div class="stat-value">${{ total_premium|floatformat:0 }}</div>
+    <div class="stat-label">Wheel Premium</div>
+    <div class="stat-change positive">Total collected</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon yellow"><i class="fas fa-landmark"></i></div>
+    <div class="stat-value">{{ capitol_count }}</div>
+    <div class="stat-label">Capitol Trades</div>
+    <div class="stat-change neutral">Last 14 days</div>
+  </div>
+</div>
+
+<!-- ── Charts + Recent Decisions ────────────────────────── -->
+<div class="grid-2 mb-24">
+
+  <!-- Rating Distribution Chart -->
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-chart-donut"></i> AI Rating Distribution</span>
+    </div>
+    <div class="glass-card-body" style="height:260px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="ratingChart" style="max-height:240px;"></canvas>
+    </div>
+  </div>
+
+  <!-- Portfolio P&L by position -->
+  <div class="glass-card">
+    <div class="glass-card-header">
+      <span class="glass-card-title"><i class="fas fa-chart-bar"></i> Position P&L</span>
+      <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div class="glass-card-body" style="height:260px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="plChart" style="max-height:240px;"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent Decisions ──────────────────────────────────── -->
+<div class="glass-card mb-24">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-brain"></i> Recent Agent Decisions</span>
+    <a href="{% url 'agent_log' %}" class="btn btn-ghost btn-sm">View All <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Date</th>
+          <th>Rating</th>
+          <th>Price Target</th>
+          <th>Stop Loss</th>
+          <th>Action</th>
+          <th>Thesis</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in recent_decisions %}
+        <tr>
+          <td class="ticker-cell">{{ d.ticker }}</td>
+          <td class="mono" style="color:var(--text-muted);">{{ d.trade_date }}</td>
+          <td><span class="badge badge-{{ d.rating|lower }}">{{ d.rating }}</span></td>
+          <td class="mono">{% if d.price_target %}${{ d.price_target|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if d.stop_loss %}<span class="negative">${{ d.stop_loss|floatformat:2 }}</span>{% else %}—{% endif %}</td>
+          <td><span class="badge badge-{{ d.execution_action }}">{{ d.execution_action|upper }}</span></td>
+          <td style="max-width:280px;" class="truncate" title="{{ d.investment_thesis }}">
+            {{ d.investment_thesis|truncatechars:80 }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center" style="padding:32px;color:var(--text-muted);">
+          <i class="fas fa-robot" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>
+          No decisions yet — trigger a run to begin
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Open Positions Preview ────────────────────────────── -->
+<div class="glass-card">
+  <div class="glass-card-header">
+    <span class="glass-card-title"><i class="fas fa-layer-group"></i> Open Positions</span>
+    <a href="{% url 'positions' %}" class="btn btn-ghost btn-sm">View All <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ticker</th>
+          <th>Qty</th>
+          <th>Avg Entry</th>
+          <th>Current</th>
+          <th>Market Value</th>
+          <th>Unrealised P&L</th>
+          <th>Stop Floor</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in positions %}
+        <tr>
+          <td class="ticker-cell">{{ p.ticker }}</td>
+          <td class="mono">{{ p.qty }}</td>
+          <td class="mono">${{ p.avg_entry_price|floatformat:2 }}</td>
+          <td class="mono">${{ p.current_price|floatformat:2 }}</td>
+          <td class="mono">${{ p.market_value|floatformat:0 }}</td>
+          <td class="mono {% if p.unrealised_pl >= 0 %}positive{% else %}negative{% endif %}">
+            {% if p.unrealised_pl >= 0 %}+{% endif %}${{ p.unrealised_pl|floatformat:2 }}
+            ({% if p.unrealised_pl_pct >= 0 %}+{% endif %}{{ p.unrealised_pl_pct|floatformat:2 }}%)
+          </td>
+          <td class="mono">{% if p.stop_loss_floor %}<span style="color:var(--yellow);">${{ p.stop_loss_floor|floatformat:2 }}</span>{% else %}<span style="color:var(--text-muted);">—</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center" style="padding:24px;color:var(--text-muted);">No open positions</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Rating Distribution Donut ─────────────────────────────
+const ratingData = {{ rating_dist|safe }};
+const ratingLabels = ratingData.map(r => r.rating);
+const ratingCounts = ratingData.map(r => r.count);
+const ratingColors = {
+  'Buy': '#10B981', 'Overweight': '#3B82F6',
+  'Hold': '#F59E0B', 'Underweight': '#F97316',
+  'Sell': '#EF4444', 'Error': '#475569'
+};
+const bgColors = ratingLabels.map(l => ratingColors[l] || '#475569');
+
+new Chart(document.getElementById('ratingChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ratingLabels,
+    datasets: [{ data: ratingCounts, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 11 }, padding: 12 } }
+    },
+    cutout: '68%',
+  }
+});
+
+// ── Position P&L Bar ──────────────────────────────────────
+const positions = {{ positions|length }};
+{% if positions %}
+const posLabels = [{% for p in positions %}"{{ p.ticker }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const posValues = [{% for p in positions %}{{ p.unrealised_pl|floatformat:2 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const posColors = posValues.map(v => v >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)');
+const posBorder = posValues.map(v => v >= 0 ? '#10B981' : '#EF4444');
+
+new Chart(document.getElementById('plChart'), {
+  type: 'bar',
+  data: {
+    labels: posLabels,
+    datasets: [{
+      label: 'Unrealised P&L ($)',
+      data: posValues,
+      backgroundColor: posColors,
+      borderColor: posBorder,
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 10 }, callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+});
+{% else %}
+document.getElementById('plChart').parentElement.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px;"><i class="fas fa-chart-bar" style="font-size:2rem;opacity:0.2;display:block;margin-bottom:8px;"></i>No positions to display</div>';
+{% endif %}
+</script>
+{% endblock %}

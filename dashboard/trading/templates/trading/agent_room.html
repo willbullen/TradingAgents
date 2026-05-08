@@ -672,15 +672,26 @@ details[open] summary i.chevron { transform: rotate(90deg); }
           </div>
         </div>
         {% empty %}
-        {% for p in "Nancy Pelosi,Michael McCaul,Josh Gottheimer,Dan Crenshaw,Ro Khanna"|split:"," %}
         <div class="politician-pill">
-          <div class="politician-avatar">{{ p|slice:":1" }}</div>
-          <div>
-            <div class="politician-name">{{ p }}</div>
-            <div class="politician-role">US Congress Member</div>
-          </div>
+          <div class="politician-avatar">N</div>
+          <div><div class="politician-name">Nancy Pelosi</div><div class="politician-role">US Congress Member</div></div>
         </div>
-        {% endfor %}
+        <div class="politician-pill">
+          <div class="politician-avatar">M</div>
+          <div><div class="politician-name">Michael McCaul</div><div class="politician-role">US Congress Member</div></div>
+        </div>
+        <div class="politician-pill">
+          <div class="politician-avatar">J</div>
+          <div><div class="politician-name">Josh Gottheimer</div><div class="politician-role">US Congress Member</div></div>
+        </div>
+        <div class="politician-pill">
+          <div class="politician-avatar">D</div>
+          <div><div class="politician-name">Dan Crenshaw</div><div class="politician-role">US Congress Member</div></div>
+        </div>
+        <div class="politician-pill">
+          <div class="politician-avatar">R</div>
+          <div><div class="politician-name">Ro Khanna</div><div class="politician-role">US Congress Member</div></div>
+        </div>
         {% endfor %}
       </div>
     </div>

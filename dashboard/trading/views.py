@@ -44,7 +44,7 @@ def overview(request):
 
     # Capitol trades count
     capitol_count = CapitolTrade.objects.filter(
-        disclosure_date__gte=timezone.now().date() - timedelta(days=14)
+        transaction_date__gte=timezone.now().date() - timedelta(days=14)
     ).count()
 
     context = {
@@ -108,14 +108,15 @@ def capitol_trades(request):
 
 def agent_log(request):
     """TradingAgents decision log."""
-    decisions = TradeDecision.objects.all()[:200]
+    all_decisions = TradeDecision.objects.all()
+    decisions = all_decisions[:200]
     runs = OrchestratorRun.objects.all()[:20]
 
-    # Stats
-    total = decisions.count()
-    buy_count = decisions.filter(rating__in=["Buy", "Overweight"]).count()
-    sell_count = decisions.filter(rating__in=["Sell", "Underweight"]).count()
-    hold_count = decisions.filter(rating="Hold").count()
+    # Stats — use unsliced queryset for aggregations
+    total = all_decisions.count()
+    buy_count = all_decisions.filter(rating__in=["Buy", "Overweight"]).count()
+    sell_count = all_decisions.filter(rating__in=["Sell", "Underweight"]).count()
+    hold_count = all_decisions.filter(rating="Hold").count()
 
     context = {
         "page": "agent_log",

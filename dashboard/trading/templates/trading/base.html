@@ -77,9 +77,24 @@
         <i class="fas fa-shield-halved"></i>
         <span>Admin</span>
       </a>
+
+      <a href="{% url 'landing' %}" class="nav-link {% if page == 'landing' %}active{% endif %}" target="_blank">
+        <i class="fas fa-rocket"></i>
+        <span>About &amp; Docs</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
+      <a href="{% url 'landing' %}" target="_blank"
+         style="display:flex;align-items:center;justify-content:center;gap:8px;
+                width:100%;padding:9px 14px;margin-bottom:12px;
+                background:linear-gradient(135deg,var(--blue-mid),var(--violet-bright));
+                border:none;border-radius:var(--radius-sm);color:#fff;
+                font-size:0.8rem;font-weight:600;letter-spacing:0.04em;
+                text-decoration:none;cursor:pointer;
+                transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        <i class="fas fa-rocket" style="font-size:0.75rem;"></i> View Landing Page
+      </a>
       <div class="status-indicator" id="ws-status">
         <div class="status-dot" id="ws-dot"></div>
         <div>
